@@ -1,0 +1,44 @@
+{
+  "name": "docdive-element",
+  "version": "0.1.0",
+  "description": "The <docdive-diagram> custom element: interactive Mermaid diagrams backed by a docdive index.",
+  "license": "MIT",
+  "author": "Thibaud Navarre",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thibaudnavarre/docdive.git",
+    "directory": "packages/docdive-element"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./dist/docdive-element.js",
+    "./shared": {
+      "types": "./dist/shared.d.ts",
+      "default": "./dist/shared.js"
+    },
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "prepack": "npm run build"
+  },
+  "peerDependencies": {
+    "mermaid": ">=11.6 <13"
+  },
+  "peerDependenciesMeta": {
+    "mermaid": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "mermaid": "^12.3.0"
+  }
+}

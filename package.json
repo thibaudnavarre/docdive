@@ -1,0 +1,37 @@
+{
+  "name": "docdive-monorepo",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "pretypecheck": "npm -w docdive-element run build",
+    "typecheck": "npm run typecheck --workspaces --if-present && tsc -p e2e",
+    "lint": "eslint . --fix",
+    "pretest": "npm -w docdive-element run build",
+    "test": "vitest run --passWithNoTests",
+    "docdive": "node packages/docdive/dist/cli.js",
+    "build": "npm run build --workspaces --if-present",
+    "examples:build": "bash examples/build-all.sh",
+    "e2e": "npm run build && playwright test",
+    "e2e:ssg": "playwright test -c playwright.ssg.config.ts",
+    "pack-test": "bash scripts/pack-test.sh"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.6",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.15.0",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0",
+    "typescript-eslint": "^8.72.2",
+    "vitest": "^5.1.0"
+  }
+}

@@ -1,0 +1,16 @@
+# MkDocs Material site over the toy fixture, served under /docdive/.
+site_name: docdive example
+site_url: http://localhost/docdive/
+docs_dir: ../../fixtures/toy
+theme:
+  name: material
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+plugins:
+  - docdive:
+      # Run the workspace CLI; published sites use the default `npx --yes docdive@<version>`.
+      command: node ../../packages/docdive/dist/cli.js

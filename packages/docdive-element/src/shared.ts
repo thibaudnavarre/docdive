@@ -1,0 +1,149 @@
+export interface DiagramEntry {
+  id: string;
+  type: string;
+  nodes: string[];
+  edges: [string, string][];
+}
+export interface ElementEntry {
+  doc: string | null;
+  parent?: string | null;
+  children?: string[];
+  appearsIn?: string[];
+  src?: string[];
+}
+export interface Index {
+  diagrams: DiagramEntry[];
+  elements: Record<string, ElementEntry>;
+  scenarios: Record<string, { doc: string; steps: { from: string; to: string; label: string; isReturn: boolean }[] }>;
+}
+
+export function el<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Record<string, string> = {}, text = ""): HTMLElementTagNameMap[K] {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  node.textContent = text;
+  return node;
+}
+
+// Mermaid flowchart node ids look like `<renderId>-flowchart-<ID>-<n>`; IDs may contain `-`.
+export function flowchartNodeId(svgId: string): string | null {
+  return /flowchart-(.+)-\d+$/.exec(svgId)?.[1] ?? null;
+}
+
+export function annotateFlowchart(svg: SVGElement, diagram: DiagramEntry): void {
+  for (const g of svg.querySelectorAll<SVGGElement>("g.node")) {
+    const id = flowchartNodeId(g.id);
+    if (id && diagram.nodes.includes(id)) g.setAttribute("data-docdive-node", id);
+  }
+  // Parallel edges: Mermaid's link counter is not 0,1,... per pair (observed `_0`, `_2`), so the
+  // k-th occurrence of a pair in the index maps to the k-th link of that pair by numeric suffix.
+  const links = [...svg.querySelectorAll<SVGPathElement>("path.flowchart-link")];
+  const seen = new Map<string, number>();
+  for (const [a, b] of diagram.edges) {
+    const key = `${a}>${b}`;
+    const k = seen.get(key) ?? 0;
+    seen.set(key, k + 1);
+    const re = new RegExp(`(^|-)L_${a}_${b}_(\\d+)$`);
+    const matches = links
+      .map((p) => ({ p, m: re.exec(p.id) }))
+      .filter((x): x is { p: SVGPathElement; m: RegExpExecArray } => x.m !== null)
+      .sort((x, y) => Number(x.m[2]) - Number(y.m[2]));
+    matches[k]?.p.setAttribute("data-docdive-edge", `${key}#${k}`);
+  }
+}
+
+// Info-panel rows for an element; empty rows are skipped by the caller.
+export function panelFields(index: Index, selected: string): [string, string[]][] {
+  const e = index.elements[selected];
+  const scenarios = Object.entries(index.scenarios)
+    .filter(([, sc]) => sc.steps.some((st) => st.from === selected || st.to === selected))
+    .map(([id]) => id);
+  return [
+    ["parent", e?.parent ? [e.parent] : []],
+    ["children", e?.children ?? []],
+    ["appearsIn", e?.appearsIn ?? []],
+    ["scenarios", scenarios],
+    ["src", e?.src ?? []],
+  ];
+}
+
+// ---- scenario trace (element; the standalone viewer keeps its own copy in main.ts) -------------
+
+export type Step = Index["scenarios"][string]["steps"][number];
+
+// The element owning a diagram's doc, then its ancestors, nearest first.
+export function ownerChain(index: Index, diagramId: string): string[] {
+  const doc = diagramId.split("#")[0];
+  const owner = Object.entries(index.elements).find(([, e]) => e.doc === doc)?.[0];
+  const chain: string[] = [];
+  for (let id: string | null | undefined = owner; id && !chain.includes(id); id = index.elements[id]?.parent) chain.push(id);
+  return chain;
+}
+
+// A scenario touches a diagram when a step's from/to is drawn in it, or is its doc owner or an ancestor
+// (so the trace stays visible on a child page reached by deep dive).
+export function touchesDiagram(index: Index, scenarioId: string, diagram: DiagramEntry): boolean {
+  const chain = ownerChain(index, diagram.id);
+  return (index.scenarios[scenarioId]?.steps ?? []).some((s) =>
+    [s.from, s.to].some((id) => diagram.nodes.includes(id) || chain.includes(id)),
+  );
+}
+
+// Mermaid sequence SVG has no per-message ids: each message is a `text.messageText` followed by a
+// `[class^=messageLine]` element, both in source order. Mapping is by DOM order, checked against step labels.
+// Returns an error message when the mapping is unreliable, null otherwise.
+export function annotateSequence(svg: SVGElement, diagram: DiagramEntry, index: Index): string | null {
+  const texts = [...svg.querySelectorAll<SVGTextElement>("text.messageText")];
+  const lines = [...svg.querySelectorAll<SVGElement>('[class^="messageLine"]')];
+  const labels = Object.values(index.scenarios)
+    .filter((sc) => diagram.id.startsWith(`${sc.doc}#`))
+    .flatMap((sc) => sc.steps.map((st) => st.label));
+  const ok = texts.length === diagram.edges.length && lines.length === texts.length &&
+    texts.every((t, i) => t.textContent?.trim() === labels[i]);
+  if (!ok) return `sequence mapping unreliable: ${texts.length} texts, ${lines.length} lines, ${diagram.edges.length} messages`;
+  texts.forEach((t, i) => {
+    t.setAttribute("data-docdive-message", String(i + 1));
+    lines[i]?.setAttribute("data-docdive-message", String(i + 1));
+  });
+  return null;
+}
+
+// A3 heuristic: the k-th forward message of an ordered pair maps to the k-th index edge of that pair;
+// a return reuses the edge of the latest forward message of the reversed pair.
+export function edgeOccurrence(all: Step[], upTo: number): { a: string; b: string; k: number } {
+  const s = all[upTo] as Step;
+  const count = (from: string, to: string, end: number) =>
+    all.slice(0, end).filter((x) => !x.isReturn && x.from === from && x.to === to).length;
+  if (!s.isReturn) return { a: s.from, b: s.to, k: count(s.from, s.to, upTo) };
+  return { a: s.to, b: s.from, k: Math.max(0, count(s.to, s.from, upTo) - 1) };
+}
+
+// Highlights step `step` (1-based; 0 = none) of a scenario in `host`, and fills `throughHost` with the
+// "passes through" notice. A5 deferred: inside a child diagram only the involved ancestor is named.
+export function applyTrace(
+  host: ParentNode,
+  throughHost: Element,
+  index: Index,
+  diagram: DiagramEntry,
+  scenarioId: string,
+  step: number,
+): void {
+  host.querySelectorAll("[data-docdive-active]").forEach((n) => n.removeAttribute("data-docdive-active"));
+  throughHost.replaceChildren();
+  const scenario = index.scenarios[scenarioId];
+  const all = scenario?.steps ?? [];
+  const s = all[step - 1];
+  if (!scenario || !s) return;
+  if (diagram.type === "sequence" && diagram.id.startsWith(`${scenario.doc}#`)) {
+    host.querySelectorAll(`[data-docdive-message="${step}"]`).forEach((n) => n.setAttribute("data-docdive-active", ""));
+  }
+  if (diagram.type !== "flowchart") return;
+  for (const id of new Set([s.from, s.to])) host.querySelector(`[data-docdive-node="${id}"]`)?.setAttribute("data-docdive-active", "");
+  const { a, b, k } = edgeOccurrence(all, step - 1);
+  const edges = [...host.querySelectorAll(`[data-docdive-edge^="${a}>${b}#"]`)];
+  (edges[k] ?? edges[edges.length - 1])?.setAttribute("data-docdive-active", "");
+  for (const id of ownerChain(index, diagram.id).reverse()) {
+    if ((id === s.from || id === s.to) && !diagram.nodes.includes(id)) {
+      throughHost.append(el("div", { "data-docdive-through": id }, `Scenario passes through ${id}`));
+    }
+  }
+}

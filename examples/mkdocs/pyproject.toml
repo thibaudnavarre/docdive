@@ -1,0 +1,9 @@
+[project]
+name = "docdive-example-mkdocs"
+version = "0.0.0"
+description = "MkDocs Material site over the toy fixture"
+requires-python = ">=3.11"
+dependencies = ["mkdocs-material==9.8.1", "mkdocs-docdive"]
+
+[tool.uv.sources]
+mkdocs-docdive = { path = "../../packages/mkdocs-docdive", editable = true }

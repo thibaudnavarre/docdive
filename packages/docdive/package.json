@@ -1,0 +1,33 @@
+{
+  "name": "docdive",
+  "version": "0.1.0",
+  "description": "Index Mermaid diagrams in docs into a model, a CLI and agent-ready context.",
+  "license": "MIT",
+  "author": "Thibaud Navarre",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thibaudnavarre/docdive.git",
+    "directory": "packages/docdive"
+  },
+  "type": "module",
+  "bin": {
+    "docdive": "dist/cli.js",
+    "ddv": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "skill"
+  ],
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "docdive-element": "^0.1.0",
+    "gray-matter": "^4.0.3"
+  }
+}

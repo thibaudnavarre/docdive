@@ -1,0 +1,11 @@
+body { font-family: system-ui, sans-serif; margin: 1rem 2rem; }
+[data-docdive-node] { cursor: pointer; }
+#nav { display: flex; gap: .5rem; align-items: center; margin-bottom: 1rem; }
+[data-docdive-panel] { margin-top: 1rem; padding: .5rem 1rem; border: 1px solid #ccc; min-height: 3rem; }
+[data-docdive-panel] h2 { margin: 0 0 .5rem; font-size: 1rem; }
+#trace { display: flex; gap: .5rem; align-items: center; margin-bottom: .5rem; }
+[data-docdive-through] { color: #e65100; font-weight: 600; margin-bottom: .5rem; }
+g[data-docdive-node][data-docdive-active] rect, g[data-docdive-node][data-docdive-active] circle, g[data-docdive-node][data-docdive-active] polygon, g[data-docdive-node][data-docdive-active] path { fill: #ffd54f !important; stroke: #e65100 !important; stroke-width: 3px !important; }
+path[data-docdive-edge][data-docdive-active] { stroke: #e65100 !important; stroke-width: 4px !important; }
+text[data-docdive-message][data-docdive-active] { fill: #e65100 !important; font-weight: 700; }
+[class^="messageLine"][data-docdive-active] { stroke: #e65100 !important; stroke-width: 4px !important; }

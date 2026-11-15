@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: astral-sh/setup-uv@v6
+
+      - run: npm ci
+
+      - run: npm run build
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: uvx ruff check .
+
+      - run: npx playwright install --with-deps chromium
+
+      # Builds the Docusaurus and MkDocs example sites (with and without the adapter, plus host Mermaid 11) through uv.
+      - run: npm run examples:build
+
+      - run: npm run e2e
+      # The MkDocs plugin test S6 reaches unpkg, so this job needs network access.
+      - run: npm run e2e:ssg
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: test-results/
+          if-no-files-found: ignore
