@@ -56,6 +56,14 @@ for (const site of SITES) {
       expect(active).toEqual([...new Set([steps[0]!.from, steps[0]!.to])].sort());
     });
 
+    test(`P4 deep dive to the child doc (${site.name})`, async ({ page }) => {
+      await open(page);
+      await page.click(q('[data-docdive-node="OrderService"]'));
+      await page.click(q("[data-docdive-open]"));
+      await page.waitForSelector(q('[data-docdive-node="Controller"]'));
+      expect(page.url()).toContain(map["architecture/order-service.md"]);
+    });
+
     test(`P3 copies the context (${site.name})`, async ({ page, context }) => {
       await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: site.origin });
       await open(page);
