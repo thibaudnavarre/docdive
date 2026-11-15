@@ -158,13 +158,13 @@ Promote the validated `spike/` (indexer/CLI, `<dyd-diagram>` element, Docusaurus
   - `npm pack` each npm package and `uv build` the MkDocs plugin;
   - install the tarballs into fresh Docusaurus and MkDocs sites outside the workspace (MkDocs `command` pointing at the packed CLI);
   - confirm render, trace and copy context.
-- [ ] T22: Publish the repo:
+- [x] T22: Publish the repo:
   - check the staged tree is under ~10 MB and has no work email or corpus;
   - make the initial commit;
   - the owner runs `gh auth login` as `thibaudnavarre`;
   - create the public repo `thibaudnavarre/docdive` and push;
   - confirm CI is green.
-- [ ] T23: Publish 0.1.0:
+- [x] T23: Publish 0.1.0:
   - `npm publish --dry-run` for each package;
   - the owner logs in to npm with 2FA and publishes `docdive-element`, then `docdive`, then `docusaurus-theme-docdive`;
   - `uv publish` for `mkdocs-docdive`;
@@ -183,3 +183,5 @@ Promote the validated `spike/` (indexer/CLI, `<dyd-diagram>` element, Docusaurus
 - [gotcha] In the workspace the Docusaurus example's host Mermaid is the hoisted 12.3.0 (the nested 11.17.2 only belongs to `@mermaid-js/layout-elk`), so the default build exercises injection of a 12.x host; only the `build-mermaid11` variant exercises 11.x.
 - [practice] `npm run pack-test` (`scripts/pack-test.sh`) packs the three npm packages and the MkDocs wheel, installs them into fresh sites outside the workspace and runs `e2e/packed.pw.ts` (needs network and uv). The Docusaurus site renders with its own Mermaid (`data-docdive-mermaid="injected"`), the MkDocs site with the bundled copy (`bundled`). Tarballs total ~2 MB.
 - [gotcha] The CLI infers more when the docs folder sits next to an SSG config (`docusaurus.config.js`, `mkdocs.yml`), so `docdive context` output for the same files differs from the bare fixture (confidence 0.6, other children). Compare "copy context" against the CLI on the same folder, never on `fixtures/toy`.
+- [decision] T22: the personal `gh` login was replaced by the owner creating the empty public repo on the web and pushing over SSH (`origin` = `git@github.com-personal:thibaudnavarre/docdive.git`, key `id_ed25519_gh-thibaudnavarre`); the `gh` keyring still holds only the managed account, which is used read-only for `gh run view`. CI run on the initial commit: green.
+- [note] Published 0.1.0 of all four packages. npm briefly lists a placeholder `docdive-element@0.0.0-stage` created at first publish; `latest` is 0.1.0. Verified from the registries: npm install of the three packages, and `mkdocs-docdive==0.1.0` building a site with the default `npx --yes docdive@0.1.0` command.
