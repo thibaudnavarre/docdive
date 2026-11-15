@@ -7,6 +7,7 @@ diagrams into a system model (`index.json`), lints it, and renders agent-ready c
 npx docdive lint --docs docs
 npx docdive context OrderService --folder docs
 npx docdive build docs --out build/docdive   # index.json, contexts.json and the <docdive-diagram> assets
+npx docdive watch docs --out build/docdive   # same, then rebuild index.json and contexts.json on every Markdown change
 ```
 
 Binaries: `docdive` and `ddv`. Run `docdive --help` for every command. Exit codes: `0` ok, `1` errors, `2` usage.

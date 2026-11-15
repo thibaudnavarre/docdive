@@ -1,4 +1,4 @@
-plan: .cor/plan_9_v1_packaging.md
-task: T24
+plan: .cor/plan_10_watch_command.md
+task: T07
 phase: done
-started: 2026-11-16T00:08:56
+started: 2026-11-16T00:39:22

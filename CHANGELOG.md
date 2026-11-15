@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- `docdive watch <folder> --out <dir>`: runs `build`, then rewrites `index.json` and `contexts.json` on every `.md` / `.mdx` change. Ctrl-C exits 0; exits 1 if the docs folder disappears.
+- `build` now writes `index.json` and `contexts.json` atomically (temp file, then rename).
+
 ## 0.1.0 - 2026-11-16
 
 First public release: `docdive`, `docdive-element`, `docusaurus-theme-docdive` (npm) and `mkdocs-docdive` (PyPI).

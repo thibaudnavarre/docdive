@@ -85,7 +85,11 @@ npx docdive init docs                # adoption report for an existing folder
 npx docdive index docs --out build   # write build/index.json
 npx docdive context OrderService --folder docs   # context bundle to paste into an agent
 npx docdive build docs --out build/docdive       # index, contexts and the element assets
+npx docdive watch docs --out build/docdive       # build, then refresh index.json and contexts.json on every .md/.mdx change
 ```
+
+`watch` does not reload the browser: serve the output folder with any static server and refresh the page. Ctrl-C stops it
+(exit 0); it exits 1 if the docs folder disappears.
 
 Exit codes: `0` ok, `1` errors in the docs or the lint, `2` usage error. Diagnostics go to stderr, data to stdout.
 
