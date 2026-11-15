@@ -169,7 +169,7 @@ Promote the validated `spike/` (indexer/CLI, `<dyd-diagram>` element, Docusaurus
   - the owner logs in to npm with 2FA and publishes `docdive-element`, then `docdive`, then `docusaurus-theme-docdive`;
   - `uv publish` for `mkdocs-docdive`;
   - confirm each package installs from its registry.
-- [ ] T24: The owner walks through a Docusaurus site and an MkDocs site that use the published packages (render, deep dive, trace, copy context) and records a yes or no [UAT].
+- [x] T24: The owner walks through a Docusaurus site and an MkDocs site that use the published packages (render, deep dive, trace, copy context) and records a yes or no [UAT].
 
 ## Notes
 
@@ -186,3 +186,4 @@ Promote the validated `spike/` (indexer/CLI, `<dyd-diagram>` element, Docusaurus
 - [decision] T22: the personal `gh` login was replaced by the owner creating the empty public repo on the web and pushing over SSH (`origin` = `git@github.com-personal:thibaudnavarre/docdive.git`, key `id_ed25519_gh-thibaudnavarre`); the `gh` keyring still holds only the managed account, which is used read-only for `gh run view`. CI run on the initial commit: green.
 - [note] Published 0.1.0 of all four packages. npm briefly lists a placeholder `docdive-element@0.0.0-stage` created at first publish; `latest` is 0.1.0. Verified from the registries: npm install of the three packages, and `mkdocs-docdive==0.1.0` building a site with the default `npx --yes docdive@0.1.0` command.
 - [practice] T24 automated walkthrough (2026-11-16): fresh Docusaurus and MkDocs sites built from the registry packages (docdive 0.1.0, docusaurus-theme-docdive 0.1.0, mkdocs-docdive 0.1.0, default `npx --yes docdive@0.1.0` command), driven in Chromium with `e2e/packed.pw.ts`: render, deep dive, scenario trace and copy context, 8/8 on both sites. The owner's yes/no is still pending.
+- [decision] T24 owner verdict (2026-11-16): yes. docdive 0.1.0 accepted.
