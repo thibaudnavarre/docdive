@@ -24,7 +24,6 @@ Options:
 
 - `command`: how to run the docdive CLI. Default `npx --yes docdive@<this plugin's version>`; Node >= 22.12 is needed at
   build time.
-- `src`: repo root that `src:` frontmatter paths are relative to (optional).
 - `source_url`: template for the panel's Source link, with `{path}` (doc path relative to `docs_dir`) and `{line}`,
   e.g. `https://git.example.com/org/repo/src/main/docs/{path}#L{line}`. Wins over `edit_uri` (optional).
 

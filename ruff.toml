@@ -1,4 +1,4 @@
-# Python lives only in the MkDocs plugin and example; keep third-party corpora out of scope.
+# Python lives only in the MkDocs plugin and example.
 required-version = ">=0.17"
 line-length = 120
-extend-exclude = ["corpus", "**/node_modules", "**/.venv", ".agents", ".claude"]
+extend-exclude = ["**/node_modules", "**/.venv", ".agents", ".claude"]

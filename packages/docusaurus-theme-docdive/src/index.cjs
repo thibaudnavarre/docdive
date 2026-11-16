@@ -11,15 +11,13 @@ let watcherStarted = false;
  * docdive adapter for Docusaurus. A theme (not a plain plugin), listed after @docusaurus/theme-mermaid so its
  * Mermaid component wraps @theme-init/Mermaid. Data only: the product logic lives in the `docdive` CLI.
  *
- * Options: `src` (repo root for `src:` frontmatter paths, relative to the site dir; optional); `sourceUrl`
- * (click-to-source template with `{path}` = doc path relative to the docs dir and `{line}`; optional, wins over
- * the docs `editUrl`).
+ * Option: `sourceUrl` (click-to-source template with `{path}` = doc path relative to the docs dir and `{line}`;
+ * optional, wins over the docs `editUrl`).
  */
 module.exports = function docdiveTheme(context, options = {}) {
   let docsDir;
   let docMap = {};
   const devDir = join(context.generatedFilesDir, "docdive");
-  const srcArgs = () => (options.src ? ["--src", resolve(context.siteDir, options.src)] : []);
   const writeMap = (dir) => {
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "docdive-map.json"), JSON.stringify(docMap, null, 2) + "\n");
@@ -58,7 +56,7 @@ module.exports = function docdiveTheme(context, options = {}) {
           onListening() {
             if (watcherStarted || !docsDir) return;
             watcherStarted = true;
-            const child = spawn(process.execPath, [docdiveCli, "watch", docsDir, "--out", devDir, ...srcArgs()], {
+            const child = spawn(process.execPath, [docdiveCli, "watch", docsDir, "--out", devDir], {
               stdio: "inherit",
             });
             process.on("exit", () => child.kill());
@@ -70,7 +68,7 @@ module.exports = function docdiveTheme(context, options = {}) {
     async postBuild({ outDir }) {
       if (!docsDir) throw new Error("docusaurus-theme-docdive: the docs plugin has no content to index");
       const dest = join(outDir, "docdive");
-      execFileSync(process.execPath, [docdiveCli, "build", docsDir, "--out", dest, ...srcArgs()], { stdio: "inherit" });
+      execFileSync(process.execPath, [docdiveCli, "build", docsDir, "--out", dest], { stdio: "inherit" });
       writeMap(dest);
     },
   };

@@ -4,18 +4,11 @@ node_modules/
 __pycache__/
 *.pyc
 
-# corpus (large, not redistributable)
-corpus/
-
 # build outputs
 dist/
-dist-*/
 build/
-build-*/
 site/
-site-*/
 *.log
-*.status
 *.tgz
 
 # test and tool caches

@@ -12,10 +12,6 @@
   "type": "module",
   "exports": {
     ".": "./dist/docdive-element.js",
-    "./shared": {
-      "types": "./dist/shared.d.ts",
-      "default": "./dist/shared.js"
-    },
     "./dist/*": "./dist/*",
     "./package.json": "./package.json"
   },
@@ -26,7 +22,7 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "build": "node scripts/build.mjs && tsc -p tsconfig.build.json",
+    "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "prepack": "npm run build"
   },

@@ -1,25 +1,28 @@
 # docdive
 
-Turn a folder of Markdown with plain Mermaid diagrams into a **navigable system model**: click a box to open its
-documentation, trace a scenario across diagrams, copy an element's context for a coding agent.
+Turn Markdown docs with plain Mermaid diagrams into a **system model you can dive into**: click a box to zoom into its
+own diagram, and play a feature's flow as an animation across every diagram it crosses.
 
-docdive is not a Mermaid fork and not a diagram editor. Docs stay pure Mermaid plus YAML frontmatter, so they keep
-rendering on GitHub. Bare `.mmd` files are indexed too, one diagram per file. Remove docdive and nothing breaks.
+Three parts:
+
+1. **The model**: plain Mermaid plus YAML frontmatter, so docs keep rendering on GitHub. Remove docdive and nothing breaks.
+2. **The viewer**: the `<docdive-diagram>` element, wired into Docusaurus and MkDocs.
+3. **The skill**: [`docdive-convert`](packages/docdive/skills/docdive-convert/SKILL.md) has a coding agent convert existing docs into the model.
 
 ## Packages
 
 | Package | Registry | What it is |
 | --- | --- | --- |
-| [`docdive`](packages/docdive) | npm | Indexer and CLI (`docdive`, `ddv`), plus the authoring conventions for agents |
+| [`docdive`](packages/docdive) | npm | Indexer and CLI (`build`, `lint`), plus the agent skill |
 | [`docdive-element`](packages/docdive-element) | npm | The `<docdive-diagram>` web component |
 | [`docusaurus-theme-docdive`](packages/docusaurus-theme-docdive) | npm | Docusaurus adapter |
 | [`mkdocs-docdive`](packages/mkdocs-docdive) | PyPI | MkDocs adapter |
 
 Requirements: Node >= 22.12 (also at MkDocs build time), Python >= 3.11 for the MkDocs plugin.
 
-## How the docs look
+## The model
 
-IDs are the glue. A Mermaid node ID is the element ID, and the same ID in two files is the same element.
+IDs are the glue: a Mermaid node ID is an element ID, and the same ID in two diagrams is the same element.
 
 ````markdown
 ---
@@ -31,9 +34,9 @@ flowchart LR
 ```
 ````
 
-A file with `id` and `parent: system` in its frontmatter is a deeper zoom of that element, `src:` lists the code that
-implements it, and a `sequenceDiagram` file with `kind: scenario` is a scenario whose participants are element IDs.
-The full rules, written for agents, are in [`packages/docdive/skill/conventions.md`](packages/docdive/skill/conventions.md). Docs that do not follow them can still be modelled: [`packages/docdive/skill/SKILL.md`](packages/docdive/skill/SKILL.md) has your coding agent write a committed `docdive.model.yaml` next to them.
+A doc with `id: OrderService` and `parent: system` is the zoom into that box (`src` and `description` are optional).
+A doc with `kind: scenario` and a `sequenceDiagram` whose participants are element IDs is a flow the viewer animates.
+Full rules: [`conventions.md`](packages/docdive/skills/docdive-convert/references/conventions.md).
 
 ## Quick start
 
@@ -73,25 +76,15 @@ plugins:
 
 `mkdocs-docdive` supports MkDocs 1.6 (`mkdocs>=1.6,<2`). MkDocs 2.0 has no plugin system, so it is not supported.
 
-Both adapters run `docdive build` after the site build and write the index, the context bundles and the element
-into `<site>/docdive/`. Removing the theme or plugin line brings back the site's native Mermaid.
-
 ## CLI
 
 ```bash
-npx docdive lint --docs docs         # IDs resolve, parents exist, src paths exist (exit 1 on errors)
-npx docdive lint --docs docs --fix   # apply the safe fixes
-npx docdive init docs                # adoption report for an existing folder
-npx docdive index docs --out build   # write build/index.json
-npx docdive context OrderService --folder docs   # context bundle to paste into an agent
-npx docdive build docs --out build/docdive       # index, contexts and the element assets
-npx docdive watch docs --out build/docdive       # build, then refresh index.json and contexts.json on every .md/.mdx/.mmd change
+npx docdive lint docs --root .                # model errors, exit 1 when any (--json for warnings)
+npx docdive build docs --out build/docdive    # index.json, contexts.json and the element assets
 ```
 
-`watch` does not reload the browser: serve the output folder with any static server and refresh the page. Ctrl-C stops it
-(exit 0); it exits 1 if the docs folder disappears.
-
-Exit codes: `0` ok, `1` errors in the docs or the lint, `2` usage error. Diagnostics go to stderr, data to stdout.
+Both adapters run `docdive build` after the site build and write into `<site>/docdive/`. Removing the theme or plugin
+line brings back the site's native Mermaid.
 
 ## Mermaid versions
 
@@ -104,15 +97,13 @@ a host instance. If a host Mermaid produces an SVG whose IDs cannot be mapped, t
 
 ```bash
 npm install
-npm run build                # packages, viewer app
+npm run build
 npm run typecheck && npm run lint && npm test && uvx ruff check .
-npm run examples:build       # Docusaurus and MkDocs example sites (needs uv)
-npx playwright install chromium
-npm run e2e && npm run e2e:ssg
+npm run examples:build       # Docusaurus and MkDocs example sites over fixtures/toy (needs uv)
+npx playwright install chromium && npm run e2e
 ```
 
-`fixtures/toy` is the sample docs folder used by the examples and the e2e suites. `corpus/` (git-ignored, fetched with
-`scripts/fetch-corpus.sh`) holds third-party docs used for the brownfield research in [`docs/`](docs).
+Release: push a `v*` tag; [`release.yml`](.github/workflows/release.yml) publishes the four packages.
 
 ## License
 

@@ -1,7 +1,7 @@
 name: Release
 
 # Push a tag like v0.3.0 to publish all four packages. No tokens: npm and PyPI trust this workflow through OIDC
-# (trusted publishing), so each registry must list this repository and workflow file. See docs/releasing.md.
+# (trusted publishing), so each registry must list this repository and workflow file.
 on:
   push:
     tags: ["v*"]

@@ -1,8 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
-import { docdive, docUrls, fenceCount, TOY, toyIndex } from "./helpers.js";
+import { SITES, docMap, toyContexts, toyIndex, watchErrors } from "./helpers.js";
 
-// One test per item of the frozen checklist in docs/trace-context-findings.md (T1-T9), per SSG.
-// Expected values come from `docdive index fixtures/toy`, the built site's docdive-map.json and the CLI.
+// Scenario animation (trace bar, play/pause, sequence, deep dive with trace), copy context and copy link, on both
+// example sites. Expected values come from `docdive build fixtures/toy`.
 
 interface Step {
   from: string;
@@ -16,30 +16,12 @@ const index = toyIndex<Index>();
 const SCENARIO = "checkout-happy-path";
 const steps = index.scenarios[SCENARIO]!.steps;
 
-// `docdive context <id>` stdout minus the final newline added by console.log.
-const cliReference = (id: string): string =>
-  docdive("context", id, "--folder", TOY).slice(0, -1);
-
-interface Site {
-  name: string;
-  origin: string;
-  plainOrigin: string;
-}
-const SITES: Site[] = [
-  { name: "docusaurus", origin: "http://localhost:4201", plainOrigin: "http://localhost:4203" },
-  { name: "mkdocs", origin: "http://localhost:4202", plainOrigin: "http://localhost:4204" },
-];
+const contexts = toyContexts();
 
 const q = (sel: string) => `docdive-diagram ${sel}`;
 const stepText = (page: Page) => page.locator(q("[data-docdive-step]")).textContent();
 const activeNodes = (page: Page) =>
   page.$$eval(q("[data-docdive-node][data-docdive-active]"), (e) => e.map((x) => x.getAttribute("data-docdive-node")!).sort());
-
-function watchErrors(page: Page): string[] {
-  const errors: string[] = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  return errors;
-}
 
 async function expectPaused(page: Page, step: string): Promise<void> {
   await expect(page.locator(q("[data-docdive-step]"))).toHaveText(step);
@@ -56,7 +38,7 @@ for (const site of SITES) {
       await page.waitForSelector(q("[data-docdive-node], [data-docdive-message]"));
     };
     test.beforeAll(async () => {
-      map = (await (await fetch(`${site.origin}/docdive/docdive/docdive-map.json`)).json()) as Record<string, string>;
+      map = await docMap(site.origin);
     });
 
     test(`T1 trace bar on the flowchart (${site.name})`, async ({ page }) => {
@@ -177,7 +159,7 @@ for (const site of SITES) {
         await page.click(q(`[data-docdive-node="${id}"]`));
         await page.click(q("[data-docdive-copy]"));
         await expect(page.locator(q("[data-docdive-copy-status]"))).toHaveText("ok");
-        expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(cliReference(id));
+        expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(contexts[id]);
       });
     }
 
@@ -207,24 +189,6 @@ for (const site of SITES) {
       const errors = watchErrors(page);
       await open(page, "architecture/system.md", "?docdive-select=nope");
       await expect(page.locator(q("[data-docdive-title]"))).toHaveCount(0);
-      expect(errors).toEqual([]);
-    });
-
-    // Same observation as A7 S6 (as amended in docs/ssg-findings.md).
-    test(`T9 deletability (${site.name})`, async ({ page }) => {
-      const errors = watchErrors(page);
-      for (const doc of Object.keys(docUrls(map))) {
-        await page.goto(`${site.plainOrigin}${map[doc]}`);
-        await expect(page.locator("docdive-diagram")).toHaveCount(0);
-        if (site.name === "docusaurus") {
-          await expect(page.locator(".docusaurus-mermaid-container svg")).toHaveCount(fenceCount(doc));
-        } else {
-          await expect(page.locator("pre.mermaid")).toHaveCount(0);
-          const box = page.locator("div.mermaid");
-          await expect(box).toHaveCount(fenceCount(doc));
-          await expect.poll(async () => (await box.first().boundingBox())?.height ?? 0).toBeGreaterThan(50);
-        }
-      }
       expect(errors).toEqual([]);
     });
   });

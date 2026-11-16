@@ -25,8 +25,6 @@ ELEMENT_SCRIPT = "docdive/docdive-element.js"
 class DocdiveConfig(base.Config):
     # How to run the docdive CLI. Pin it to this plugin's version so the two cannot drift apart.
     command = c.Type(str, default=f"npx --yes docdive@{__version__}")
-    # Repo root that `src:` frontmatter paths are relative to (optional).
-    src = c.Optional(c.Type(str))
     # Click-to-source URL template with `{path}` (doc path relative to docs_dir) and `{line}`; wins over `edit_uri`.
     source_url = c.Optional(c.Type(str))
 
@@ -62,8 +60,6 @@ class DocdivePlugin(BasePlugin[DocdiveConfig]):
         if executable is None:
             raise PluginError(f"docdive: cannot run `{command[0]}`; Node.js >= 22.12 is required at build time")
         args = [executable, *command[1:], "build", str(config.docs_dir), "--out", str(dest)]
-        if self.config.src:
-            args += ["--src", str(Path(self.config.src).resolve())]
         try:
             subprocess.run(args, check=True)
         except subprocess.CalledProcessError as error:

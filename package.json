@@ -7,7 +7,6 @@
   },
   "workspaces": [
     "packages/*",
-    "apps/*",
     "examples/*"
   ],
   "scripts": {
@@ -15,16 +14,10 @@
     "typecheck": "npm run typecheck --workspaces --if-present && tsc -p e2e",
     "lint": "eslint . --fix",
     "pretest": "npm -w docdive-element run build",
-    "test": "vitest run --passWithNoTests",
-    "docdive": "node packages/docdive/dist/cli.js",
+    "test": "vitest run",
     "build": "npm run build --workspaces --if-present",
     "examples:build": "bash examples/build-all.sh",
-    "e2e": "npm run build && playwright test",
-    "e2e:ssg": "playwright test -c playwright.ssg.config.ts",
-    "e2e:dev": "playwright test -c playwright.dev.config.ts",
-    "pack-test": "bash scripts/pack-test.sh",
-    "docs:dev": "npm -w docdive-docs-site exec -- docusaurus start",
-    "docs:build": "npm -w docdive-docs-site exec -- docusaurus build"
+    "e2e": "playwright test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

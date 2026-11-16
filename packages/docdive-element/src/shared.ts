@@ -5,8 +5,6 @@ export interface DiagramEntry {
   edges: [string, string][];
   /** Absolute 1-based Markdown line per node (absent in indexes built before click-to-source). */
   lines?: Record<string, number>;
-  /** Node ID -> element ID for alias nodes (absent when the diagram has none). */
-  nodeElement?: Record<string, string>;
 }
 export interface ElementEntry {
   doc: string | null;
@@ -14,7 +12,6 @@ export interface ElementEntry {
   children?: string[];
   appearsIn?: string[];
   src?: string[];
-  aliases?: string[];
   description?: string;
 }
 /** index.json schema version this element reads. Bumped only for breaking changes to the index shape. */
@@ -38,17 +35,12 @@ export function flowchartNodeId(svgId: string): string | null {
   return /flowchart-(.+)-\d+$/.exec(svgId)?.[1] ?? null;
 }
 
-// Element a diagram node stands for: its alias target, else the node ID itself.
-export const nodeToElement = (diagram: DiagramEntry, node: string): string => diagram.nodeElement?.[node] ?? node;
-
-// True when the diagram draws `id`, directly or through an alias node.
-export const drawsElement = (diagram: DiagramEntry, id: string): boolean =>
-  diagram.nodes.some((n) => nodeToElement(diagram, n) === id);
+export const drawsElement = (diagram: DiagramEntry, id: string): boolean => diagram.nodes.includes(id);
 
 export function annotateFlowchart(svg: SVGElement, diagram: DiagramEntry): void {
   for (const g of svg.querySelectorAll<SVGGElement>("g.node")) {
     const id = flowchartNodeId(g.id);
-    if (id && diagram.nodes.includes(id)) g.setAttribute("data-docdive-node", nodeToElement(diagram, id));
+    if (id && diagram.nodes.includes(id)) g.setAttribute("data-docdive-node", id);
   }
   // Parallel edges: Mermaid's link counter is not 0,1,... per pair (observed `_0`, `_2`), so the
   // k-th occurrence of a pair in the index maps to the k-th link of that pair by numeric suffix.
@@ -63,7 +55,7 @@ export function annotateFlowchart(svg: SVGElement, diagram: DiagramEntry): void 
       .map((p) => ({ p, m: re.exec(p.id) }))
       .filter((x): x is { p: SVGPathElement; m: RegExpExecArray } => x.m !== null)
       .sort((x, y) => Number(x.m[2]) - Number(y.m[2]));
-    matches[k]?.p.setAttribute("data-docdive-edge", `${nodeToElement(diagram, a)}>${nodeToElement(diagram, b)}#${k}`);
+    matches[k]?.p.setAttribute("data-docdive-edge", `${a}>${b}#${k}`);
   }
 }
 
@@ -75,7 +67,6 @@ export function panelFields(index: Index, selected: string): [string, string[]][
     .map(([id]) => id);
   return [
     ["description", e?.description ? [e.description] : []],
-    ["aliases", e?.aliases ?? []],
     ["parent", e?.parent ? [e.parent] : []],
     ["children", e?.children ?? []],
     ["appearsIn", e?.appearsIn ?? []],
@@ -104,7 +95,7 @@ export function sourceHref(editUrl: string | undefined, template: string | undef
   return url.href;
 }
 
-// ---- scenario trace (element; the standalone viewer keeps its own copy in main.ts) -------------
+// ---- scenario trace ---------------------------------------------------------------------------
 
 export type Step = Index["scenarios"][string]["steps"][number];
 

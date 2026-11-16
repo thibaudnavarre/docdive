@@ -1,20 +1,37 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { Page } from "@playwright/test";
 
-export const ROOT = join(import.meta.dirname, "..");
-export const TOY = join(ROOT, "fixtures", "toy");
+const ROOT = join(import.meta.dirname, "..");
+const TOY = join(ROOT, "fixtures", "toy");
 const CLI = join(ROOT, "packages", "docdive", "dist", "cli.js");
 
-/** Runs the built docdive CLI; stderr (diagnostics) is dropped so only the data is returned. */
-export const docdive = (...args: string[]): string =>
-  execFileSync(process.execPath, [CLI, ...args], { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+export const SITES = [
+  { name: "docusaurus", origin: "http://localhost:4201" },
+  { name: "mkdocs", origin: "http://localhost:4202" },
+];
 
-export const toyIndex = <T>(): T => JSON.parse(docdive("index", TOY)) as T;
+let built: string | undefined;
+/** `docdive build fixtures/toy` into a temp folder, once per worker. */
+function toyBuild(file: string): unknown {
+  if (!built) {
+    built = mkdtempSync(join(tmpdir(), "docdive-e2e-"));
+    execFileSync(process.execPath, [CLI, "build", TOY, "--out", built], { stdio: "ignore" });
+  }
+  return JSON.parse(readFileSync(join(built, file), "utf8"));
+}
+export const toyIndex = <T>(): T => toyBuild("index.json") as T;
+export const toyContexts = (): Record<string, string> => toyBuild("contexts.json") as Record<string, string>;
 
-/** Number of Mermaid fences in a fixture doc (path relative to fixtures/toy). */
-export const fenceCount = (doc: string): number => readFileSync(join(TOY, doc), "utf8").match(/^```mermaid$/gm)?.length ?? 0;
+/** Doc path -> page URL, written by the adapter next to the index. */
+export async function docMap(origin: string): Promise<Record<string, string>> {
+  return (await (await fetch(`${origin}/docdive/docdive/docdive-map.json`)).json()) as Record<string, string>;
+}
 
-/** The doc -> URL entries of docdive-map.json, without the reserved `sources` / `sourceUrl` keys. */
-export const docUrls = (map: Record<string, unknown>): Record<string, string> =>
-  Object.fromEntries(Object.entries(map).filter((e): e is [string, string] => typeof e[1] === "string"));
+export function watchErrors(page: Page): string[] {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  return errors;
+}

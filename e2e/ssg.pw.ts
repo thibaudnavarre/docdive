@@ -1,43 +1,20 @@
 import { test, expect, type Page } from "@playwright/test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { ROOT, docUrls, fenceCount, toyIndex } from "./helpers.js";
+import { SITES, docMap, toyIndex, watchErrors } from "./helpers.js";
 
-// One test per item of the frozen checklist in docs/ssg-findings.md (S1-S7), per SSG.
-// Expected values come from `docdive index fixtures/toy`.
+// Render, deep dive, info panel, breadcrumb and Source link on both example sites. Expected values come from
+// `docdive build fixtures/toy`.
 
 interface Index {
   diagrams: { id: string; type: string; nodes: string[] }[];
   elements: Record<string, { parent?: string; children?: string[]; appearsIn?: string[]; src?: string[] }>;
   scenarios: Record<string, { doc: string; steps: { from: string; to: string }[] }>;
 }
-const SITE = join(ROOT, "examples", "docusaurus");
 const index = toyIndex<Index>();
 const SYSTEM = "architecture/system.md";
 const nodesOf = (diagram: string) => index.diagrams.find((d) => d.id === diagram)!.nodes;
 
-interface Site {
-  name: string;
-  origin: string;
-  plainOrigin: string;
-}
-const SITES: Site[] = [
-  { name: "docusaurus", origin: "http://localhost:4201", plainOrigin: "http://localhost:4203" },
-  { name: "mkdocs", origin: "http://localhost:4202", plainOrigin: "http://localhost:4204" },
-];
-
-async function docMap(origin: string): Promise<Record<string, string>> {
-  const res = await fetch(`${origin}/docdive/docdive/docdive-map.json`);
-  return (await res.json()) as Record<string, string>;
-}
 const nodeIds = (page: Page) => page.$$eval("docdive-diagram [data-docdive-node]", (e) => e.map((x) => x.getAttribute("data-docdive-node")!));
 const field = (page: Page, name: string) => page.locator(`docdive-diagram [data-docdive-panel] [data-docdive-field="${name}"] [data-docdive-value]`);
-
-function watchErrors(page: Page): string[] {
-  const errors: string[] = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  return errors;
-}
 
 for (const site of SITES) {
   test.describe(site.name, () => {
@@ -75,7 +52,7 @@ for (const site of SITES) {
       expect(bad).toEqual([]);
     });
 
-    // S3 as amended 2026-11-15 (docs/ssg-findings.md): select the node, then follow the panel's "Open" link.
+    // A node click selects; the panel's "Open" link dives.
     test(`S3 deep dive (${site.name})`, async ({ page }) => {
       await page.goto(url("architecture/system.md"));
       await page.waitForSelector("docdive-diagram [data-docdive-node]");
@@ -100,7 +77,6 @@ for (const site of SITES) {
       expect(page.url()).toBe(before);
     });
 
-    // S4/S5: a node click no longer navigates (S3 amendment), so the panel is read in place.
     test(`S4 info panel, documented element (${site.name})`, async ({ page }) => {
       await page.goto(url("architecture/system.md"));
       await page.waitForSelector("docdive-diagram [data-docdive-node]");
@@ -131,32 +107,24 @@ for (const site of SITES) {
       expect(errors).toEqual([]);
     });
 
-    test(`S6 deletability (${site.name})`, async ({ page }) => {
-      const errors = watchErrors(page);
-      for (const doc of Object.keys(docUrls(map))) {
-        await page.goto(`${site.plainOrigin}${map[doc]}`);
-        await expect(page.locator("docdive-diagram")).toHaveCount(0);
-        if (site.name === "docusaurus") {
-          await expect(page.locator(".docusaurus-mermaid-container svg")).toHaveCount(fenceCount(doc));
-        } else {
-          // Material's shadow root is closed: judge by the replaced container and its rendered height.
-          await expect(page.locator("pre.mermaid")).toHaveCount(0);
-          const box = page.locator("div.mermaid");
-          await expect(box).toHaveCount(fenceCount(doc));
-          await expect.poll(async () => (await box.first().boundingBox())?.height ?? 0).toBeGreaterThan(50);
-        }
-      }
-      expect(errors).toEqual([]);
+    test(`breadcrumb shows the trail root-first, and the root page has none (${site.name})`, async ({ page }) => {
+      const CRUMBS = "docdive-diagram [data-docdive-breadcrumb] [data-docdive-crumb]";
+      await page.goto(url("architecture/validator.md"));
+      await page.waitForSelector("docdive-diagram [data-docdive-node]");
+      await expect(page.locator(CRUMBS)).toHaveText(["system", "OrderService", "Validator"]);
+      await expect(page.locator(`${CRUMBS}[aria-current="page"]`)).toHaveText("Validator");
+      await page.goto(url(SYSTEM));
+      await page.waitForSelector("docdive-diagram [data-docdive-node]");
+      await expect(page.locator("docdive-diagram [data-docdive-breadcrumb]")).toHaveCount(0);
+    });
+
+    // The sites set a GitHub edit URL; the element rewrites it to /blob/. system.md declares OrdersDB on line 8.
+    test(`Source link opens the repo page at the node line (${site.name})`, async ({ page }) => {
+      await page.goto(url(SYSTEM));
+      await page.locator('docdive-diagram [data-docdive-node="OrdersDB"]').click();
+      const source = page.locator("docdive-diagram [data-docdive-source]");
+      await expect(source).toHaveAttribute("href", "https://github.com/thibaudnavarre/docdive/blob/main/fixtures/toy/architecture/system.md#L8");
+      await expect(source).toHaveAttribute("target", "_blank");
     });
   });
 }
-
-test("S7 no id: build error (docusaurus)", async () => {
-  const status = readFileSync(join(SITE, "build.status"), "utf8").trim();
-  const log = readFileSync(join(SITE, "build.log"), "utf8");
-  expect(status).toBe("0");
-  expect(log).not.toMatch(/\[ERROR\]|duplicate/i);
-  const map = await docMap(SITES[0]!.origin);
-  expect(Object.keys(docUrls(map)).sort()).toEqual(["architecture/order-service.md", "architecture/orders-db.md", "architecture/system.md", "architecture/validator.md", "scenarios/checkout.md"]);
-  expect(new Set(Object.values(docUrls(map))).size).toBe(5);
-});

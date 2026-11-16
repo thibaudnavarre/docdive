@@ -5,17 +5,14 @@ import tseslint from "typescript-eslint";
 export default defineConfig(
   {
     ignores: [
-      "corpus/",
       "**/node_modules/",
       "**/dist/",
-      "**/dist-*/",
       "**/build/",
-      "**/build-*/",
       "**/site/",
-      "**/site-*/",
       "**/test-results/",
       "**/playwright-report/",
       "**/.docusaurus/",
+      "**/.venv/",
       "fixtures/",
       ".agents/",
       ".claude/",
