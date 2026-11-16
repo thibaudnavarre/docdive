@@ -6,8 +6,10 @@ import {
   breadcrumb,
   el,
   hasSeveralFences,
+  hostTheme,
   panelFields,
   sourceHref,
+  THEME_ATTRS,
   touchesDiagram,
   urlStateOwner,
   withTrace,
@@ -134,6 +136,7 @@ export class DocdiveDiagram extends HTMLElement {
   private step = 0;
   private diagram?: DiagramEntry;
   private page?: { doc: string; n: number };
+  private themeObserver?: MutationObserver;
   private timer?: ReturnType<typeof setInterval>;
   private traceBar = el("div", { "data-docdive-trace": "" });
   private picker = el("select", { "data-docdive-scenario-picker": "" });
@@ -173,9 +176,22 @@ export class DocdiveDiagram extends HTMLElement {
 
   disconnectedCallback(): void {
     this.stopPlay();
+    this.themeObserver?.disconnect();
   }
 
+  // Shadow DOM cannot see host attributes from CSS, so the host theme is mirrored onto this element.
+  private syncTheme = (): void => {
+    const theme = hostTheme(document);
+    if (theme) this.setAttribute("data-docdive-theme", theme);
+    else this.removeAttribute("data-docdive-theme");
+  };
+
   connectedCallback(): void {
+    this.syncTheme();
+    this.themeObserver ??= new MutationObserver(this.syncTheme);
+    const opts = { attributes: true, attributeFilter: THEME_ATTRS };
+    this.themeObserver.observe(document.documentElement, opts);
+    if (document.body) this.themeObserver.observe(document.body, opts);
     // Take the fence text out of the light DOM so Material's own Mermaid mount finds nothing.
     if (!this.hasAttribute("source") && this.textContent?.trim()) {
       this.setAttribute("source", this.textContent.replace(/^\n+|\s+$/g, ""));

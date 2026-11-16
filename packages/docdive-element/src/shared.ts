@@ -206,3 +206,17 @@ export function applyTrace(
     }
   }
 }
+
+export const THEME_ATTRS = ["data-theme", "data-md-color-scheme"];
+
+// Host site color scheme: Docusaurus `data-theme` or Material `data-md-color-scheme` (`slate` = dark, any other
+// palette = light) on <html>/<body>; null when the host declares none, so CSS falls back to prefers-color-scheme.
+export function hostTheme(doc: { documentElement: Element; body: Element | null }): "light" | "dark" | null {
+  for (const node of [doc.documentElement, doc.body]) {
+    const docusaurus = node?.getAttribute("data-theme");
+    if (docusaurus === "dark" || docusaurus === "light") return docusaurus;
+    const material = node?.getAttribute("data-md-color-scheme");
+    if (material) return material === "slate" ? "dark" : "light";
+  }
+  return null;
+}

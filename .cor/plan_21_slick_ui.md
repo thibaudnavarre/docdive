@@ -52,7 +52,7 @@ Give the `<docdive-diagram>` web component an elegant, modern, Linear/Vercel-sty
 ## Tasks
 
 - [x] T01: Define `--docdive-*` custom properties (light + dark palette, accent, radius, spacing, motion duration) and restyle panel, trace bar, breadcrumb, error and `:focus-visible` rings in `STYLE` (`element.ts:74`); AA contrast, inherit host font
-- [ ] T02: Add pure `hostTheme(document)` to `shared.ts` (Docusaurus `html[data-theme]`, Material `data-md-color-scheme` on `html`/`body`, `slate` → dark, else null); element mirrors it to `:host[data-docdive-theme]` via MutationObserver; CSS falls back to `prefers-color-scheme` when absent
+- [x] T02: Add pure `hostTheme(document)` to `shared.ts` (Docusaurus `html[data-theme]`, Material `data-md-color-scheme` on `html`/`body`, `slate` → dark, else null); element mirrors it to `:host[data-docdive-theme]` via MutationObserver; CSS falls back to `prefers-color-scheme` when absent
 - [ ] T03: Restyle Mermaid default output (flowchart nodes/edges/labels, sequence actors/messages) with theme-aware `:where()` shadow CSS so author `classDef`/`style` always wins
 - [ ] T04: Restyle active highlight with accent tokens + glow, replacing `#e65100`
 - [ ] T05: Trace step motion via Web Animations API in the highlight path (`shared.ts:189`): ~200 ms fade/glow on active node, stroke-draw on active edge/message; skipped under `prefers-reduced-motion` or when `Element.animate` is missing
