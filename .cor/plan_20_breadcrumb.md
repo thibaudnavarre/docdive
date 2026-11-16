@@ -56,4 +56,4 @@ Add a breadcrumb to `<docdive-diagram>`: `system › OrderService › Validator`
 - [x] T04: Unit tests for `breadcrumb` and `withTrace` in `shared.test.ts` [unit]
 - [x] T05: Add `e2e/breadcrumb.pw.ts` (Docusaurus + MkDocs) and register it in `playwright.ssg.config.ts` [integration]
 - [x] T06: Update `docs/architecture/docdive-element.md` (hooks, behavior), the element README if it lists hooks, and product brief §6.1 status + §10 item 5
-- [ ] T07: Owner walkthrough of the breadcrumb on both example sites [UAT]
+- [x] T07: Owner walkthrough of the breadcrumb on both example sites [UAT]
