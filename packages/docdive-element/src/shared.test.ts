@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { breadcrumb, edgeOccurrence, hasSeveralFences, sourceHref, touchesDiagram, urlStateOwner, withTrace, type DiagramEntry, type Index, type Step } from "./shared.js";
+import { breadcrumb, edgeOccurrence, hasSeveralFences, hostTheme, motionAllowed, sourceHref, touchesDiagram, urlStateOwner, withTrace, type DiagramEntry, type Index, type Step } from "./shared.js";
 
 const fwd = (from: string, to: string): Step => ({ from, to, label: "", isReturn: false });
 const ret = (from: string, to: string): Step => ({ from, to, label: "", isReturn: true });
@@ -138,5 +138,41 @@ describe("withTrace", () => {
   it("leaves the URL alone without an active trace", () => {
     expect(withTrace("/a/", "", 2)).toBe("/a/");
     expect(withTrace("/a/", "checkout", 0)).toBe("/a/");
+  });
+});
+
+describe("hostTheme", () => {
+  const node = (attrs: Record<string, string> = {}) => ({ getAttribute: (k: string) => attrs[k] ?? null }) as unknown as Element;
+  const doc = (html: Record<string, string>, body: Record<string, string> = {}) => ({ documentElement: node(html), body: node(body) });
+
+  it("reads Docusaurus data-theme on <html>", () => {
+    expect(hostTheme(doc({ "data-theme": "dark" }))).toBe("dark");
+    expect(hostTheme(doc({ "data-theme": "light" }))).toBe("light");
+  });
+
+  it("reads Material data-md-color-scheme on <body>: slate is dark, any other palette light", () => {
+    expect(hostTheme(doc({}, { "data-md-color-scheme": "slate" }))).toBe("dark");
+    expect(hostTheme(doc({}, { "data-md-color-scheme": "default" }))).toBe("light");
+  });
+
+  it("is null when the host declares no scheme, or an unknown data-theme", () => {
+    expect(hostTheme(doc({}))).toBeNull();
+    expect(hostTheme(doc({ "data-theme": "sepia" }))).toBeNull();
+    expect(hostTheme({ documentElement: node(), body: null })).toBeNull();
+  });
+});
+
+describe("motionAllowed", () => {
+  const animatable = { animate: () => undefined };
+  const media = (matches: boolean) => ({ matchMedia: () => ({ matches }) });
+
+  it("allows motion when Element.animate exists and reduced motion is not requested", () => {
+    expect(motionAllowed(animatable, media(false))).toBe(true);
+    expect(motionAllowed(animatable, {})).toBe(true);
+  });
+
+  it("skips motion under prefers-reduced-motion or without Element.animate", () => {
+    expect(motionAllowed(animatable, media(true))).toBe(false);
+    expect(motionAllowed({}, media(false))).toBe(false);
   });
 });
