@@ -1,6 +1,6 @@
 {
   "name": "docdive-element",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The <docdive-diagram> custom element: interactive Mermaid diagrams backed by a docdive index.",
   "license": "MIT",
   "author": "Thibaud Navarre",

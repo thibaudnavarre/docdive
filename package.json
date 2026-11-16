@@ -21,6 +21,7 @@
     "examples:build": "bash examples/build-all.sh",
     "e2e": "npm run build && playwright test",
     "e2e:ssg": "playwright test -c playwright.ssg.config.ts",
+    "e2e:dev": "playwright test -c playwright.dev.config.ts",
     "pack-test": "bash scripts/pack-test.sh"
   },
   "devDependencies": {

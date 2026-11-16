@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 - 2026-11-16
 
 - `docdive watch <folder> --out <dir>`: runs `build`, then rewrites `index.json` and `contexts.json` on every `.md` / `.mdx` change. Ctrl-C exits 0; exits 1 if the docs folder disappears.
+- `watch` no longer exits when the first build fails: it logs the error, still copies the element assets, and recovers on the next save.
+- `docusaurus-theme-docdive`: `docusaurus start` now serves the docdive assets and data (via `docdive watch`). Reload the page after a Markdown edit to see fresh data. Production builds are unchanged.
 - `build` now writes `index.json` and `contexts.json` atomically (temp file, then rename).
 
 ## 0.1.0 - 2026-11-16

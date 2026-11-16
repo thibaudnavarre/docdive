@@ -42,6 +42,8 @@ jobs:
       - run: npm run e2e
       # The MkDocs plugin test S6 reaches unpkg, so this job needs network access.
       - run: npm run e2e:ssg
+      # `docusaurus start` on the example site; needs the built packages (npm run e2e builds them).
+      - run: npm run e2e:dev
 
       - uses: actions/upload-artifact@v4
         if: failure()

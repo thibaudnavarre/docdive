@@ -1,6 +1,6 @@
 {
   "name": "docusaurus-theme-docdive",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Docusaurus theme that renders Mermaid fences as interactive docdive diagrams.",
   "license": "MIT",
   "author": "Thibaud Navarre",
@@ -25,7 +25,7 @@
     "node": ">=22.12"
   },
   "dependencies": {
-    "docdive": "^0.1.0"
+    "docdive": "^0.2.0"
   },
   "peerDependencies": {
     "@docusaurus/core": "^3.10.0",

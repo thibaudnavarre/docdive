@@ -120,9 +120,15 @@ function watchDocs(rest: string[], io: Io): Promise<number> {
   };
   const stamp = () => new Date().toLocaleTimeString("en-GB");
 
-  const initial = rebuild();
+  // A failed first build must not kill the watcher: the next save may fix it.
+  let status: string;
+  try {
+    status = summarise(rebuild());
+  } catch (e) {
+    status = `initial build failed: ${(e as Error).message}`;
+  }
   copyAssets(dir);
-  io.err(`[${stamp()}] watching ${pos[0]}: ${summarise(initial)}`);
+  io.err(`[${stamp()}] watching ${pos[0]}: ${status}`);
 
   return new Promise<number>((resolveRun) => {
     const changed = new Set<string>();

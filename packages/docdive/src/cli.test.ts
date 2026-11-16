@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -166,6 +166,22 @@ describe("watch", () => {
     expect(watcher.rebuilds()).toHaveLength(2);
     expect(watcher.err.join("\n")).not.toContain("notes.txt");
     await watcher.stop();
+  });
+
+  it("survives a failed initial build and recovers on the next save", async () => {
+    const folder = docs();
+    // a dangling .md symlink makes the folder walk throw
+    symlinkSync(join(folder, "missing.md"), join(folder, "bad.md"));
+    const out = join(tmp(), "out");
+    const watcher = start(folder, out);
+    await until(() => expect(readdirSync(out).some((f) => f.endsWith(".js"))).toBe(true));
+    expect(watcher.err.join("\n")).toContain("initial build failed");
+    expect(existsSync(join(out, "index.json"))).toBe(false);
+
+    unlinkSync(join(folder, "bad.md"));
+    writeFileSync(join(folder, "a.md"), page("A", "Gamma"));
+    await until(() => expect(read(out, "index.json")).toContain("Gamma"));
+    expect(await watcher.stop()).toBe(EXIT_OK);
   });
 
   it("exits 1 when the docs folder disappears", async () => {
