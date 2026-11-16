@@ -50,7 +50,7 @@ On a copy of `_retrodoc` with an agent-written, lint-clean sidecar, the owner co
 - [x] T03: Merge the sidecar into the model with frontmatter > sidecar > inference. Alias node IDs resolve to the canonical element in `appearsIn`, `children` and scenario participants. Add optional `aliases`, `description`, `origin` on elements and an optional `nodeElement` (node ID → element ID) map on diagrams.
 - [x] T04: Add sidecar lint rules. Errors: alias used by no diagram, alias claimed by two elements, unknown parent or parent cycle, missing `src`. Warnings: changed or missing `sources`, listing the affected entries.
 - [x] T05: Add `docdive model stamp <folder>` to write the `sources` hashes into the sidecar.
-- [ ] T06: In `packages/docdive-element/src/shared.ts`, resolve SVG node → element through `nodeElement` (fall back to the node ID), so highlight, deep dive and scenario trace work across aliases. Show `description` in the panel.
+- [x] T06: In `packages/docdive-element/src/shared.ts`, resolve SVG node → element through `nodeElement` (fall back to the node ID), so highlight, deep dive and scenario trace work across aliases. Show `description` in the panel.
 - [ ] T07: Show `aliases`, `description` and entity children in the `docdive context` bundle.
 - [ ] T08: Write `packages/docdive/skill/SKILL.md`: workflow (`docdive index` → read docs and code → write sidecar → `docdive model stamp` → `docdive lint` → fix) and guidance on judging merges, hierarchy, descriptions, `src` and entities.
 - [ ] T09: Unit tests: sidecar parsing and validation, merge precedence, alias resolution, each lint rule, and the no-sidecar byte-identical invariant. [unit]

@@ -1,4 +1,4 @@
 plan: .cor/plan_22_agent_model.md
-task: T05
+task: T06
 phase: done
-started: 2026-11-16T17:30:00
+started: 2026-11-16T17:36:00

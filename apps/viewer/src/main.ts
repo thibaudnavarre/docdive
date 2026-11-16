@@ -1,5 +1,5 @@
 import mermaid from "mermaid";
-import { annotateFlowchart, el, panelFields, type DiagramEntry, type Index } from "docdive-element/shared";
+import { annotateFlowchart, drawsElement, el, panelFields, type DiagramEntry, type Index } from "docdive-element/shared";
 
 const app = document.getElementById("app") as HTMLElement;
 const index = (await (await fetch("/toy/index.json")).json()) as Index;
@@ -158,7 +158,7 @@ function applyTrace(): void {
     // A5 deferred: no sub-step expansion; inside a child diagram only say the parent is involved.
     const owner = docOwner.get(current.split("#")[0] as string);
     for (let id: string | null | undefined = owner; id; id = index.elements[id]?.parent) {
-      if ((id === s.from || id === s.to) && !diagram.nodes.includes(id)) {
+      if ((id === s.from || id === s.to) && !drawsElement(diagram, id)) {
         throughHost.append(el("div", { "data-docdive-through": id }, `Scenario passes through ${id}`));
       }
     }

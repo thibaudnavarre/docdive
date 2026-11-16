@@ -4,6 +4,7 @@ import {
   annotateSequence,
   applyTrace,
   breadcrumb,
+  drawsElement,
   el,
   hasSeveralFences,
   hostTheme,
@@ -420,7 +421,7 @@ export class DocdiveDiagram extends HTMLElement {
     const id = q.get("docdive-select");
     const { index, page } = this;
     if (!id || !index?.elements[id] || !page) return;
-    const owner = urlStateOwner(index, page.doc, qualifier(q), (d) => d.nodes.includes(id));
+    const owner = urlStateOwner(index, page.doc, qualifier(q), (d) => drawsElement(d, id));
     if (owner !== page.n || !this.host.querySelector(`[data-docdive-node="${CSS.escape(id)}"]`)) return;
     this.selected = id;
     this.renderPanel();

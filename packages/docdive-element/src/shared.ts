@@ -5,6 +5,8 @@ export interface DiagramEntry {
   edges: [string, string][];
   /** Absolute 1-based Markdown line per node (absent in indexes built before click-to-source). */
   lines?: Record<string, number>;
+  /** Node ID -> element ID for alias nodes (absent when the diagram has none). */
+  nodeElement?: Record<string, string>;
 }
 export interface ElementEntry {
   doc: string | null;
@@ -12,6 +14,8 @@ export interface ElementEntry {
   children?: string[];
   appearsIn?: string[];
   src?: string[];
+  aliases?: string[];
+  description?: string;
 }
 /** index.json schema version this element reads. Bumped only for breaking changes to the index shape. */
 export const INDEX_VERSION = 1;
@@ -34,10 +38,17 @@ export function flowchartNodeId(svgId: string): string | null {
   return /flowchart-(.+)-\d+$/.exec(svgId)?.[1] ?? null;
 }
 
+// Element a diagram node stands for: its alias target, else the node ID itself.
+export const nodeToElement = (diagram: DiagramEntry, node: string): string => diagram.nodeElement?.[node] ?? node;
+
+// True when the diagram draws `id`, directly or through an alias node.
+export const drawsElement = (diagram: DiagramEntry, id: string): boolean =>
+  diagram.nodes.some((n) => nodeToElement(diagram, n) === id);
+
 export function annotateFlowchart(svg: SVGElement, diagram: DiagramEntry): void {
   for (const g of svg.querySelectorAll<SVGGElement>("g.node")) {
     const id = flowchartNodeId(g.id);
-    if (id && diagram.nodes.includes(id)) g.setAttribute("data-docdive-node", id);
+    if (id && diagram.nodes.includes(id)) g.setAttribute("data-docdive-node", nodeToElement(diagram, id));
   }
   // Parallel edges: Mermaid's link counter is not 0,1,... per pair (observed `_0`, `_2`), so the
   // k-th occurrence of a pair in the index maps to the k-th link of that pair by numeric suffix.
@@ -52,7 +63,7 @@ export function annotateFlowchart(svg: SVGElement, diagram: DiagramEntry): void 
       .map((p) => ({ p, m: re.exec(p.id) }))
       .filter((x): x is { p: SVGPathElement; m: RegExpExecArray } => x.m !== null)
       .sort((x, y) => Number(x.m[2]) - Number(y.m[2]));
-    matches[k]?.p.setAttribute("data-docdive-edge", `${key}#${k}`);
+    matches[k]?.p.setAttribute("data-docdive-edge", `${nodeToElement(diagram, a)}>${nodeToElement(diagram, b)}#${k}`);
   }
 }
 
@@ -63,6 +74,8 @@ export function panelFields(index: Index, selected: string): [string, string[]][
     .filter(([, sc]) => sc.steps.some((st) => st.from === selected || st.to === selected))
     .map(([id]) => id);
   return [
+    ["description", e?.description ? [e.description] : []],
+    ["aliases", e?.aliases ?? []],
     ["parent", e?.parent ? [e.parent] : []],
     ["children", e?.children ?? []],
     ["appearsIn", e?.appearsIn ?? []],
@@ -126,7 +139,7 @@ export function withTrace(url: string, scenario: string, step: number): string {
 export function touchesDiagram(index: Index, scenarioId: string, diagram: DiagramEntry): boolean {
   const chain = ownerChain(index, diagram.id);
   return (index.scenarios[scenarioId]?.steps ?? []).some((s) =>
-    [s.from, s.to].some((id) => diagram.nodes.includes(id) || chain.includes(id)),
+    [s.from, s.to].some((id) => drawsElement(diagram, id) || chain.includes(id)),
   );
 }
 
@@ -226,7 +239,7 @@ export function applyTrace(
   const edge = edges[k] ?? edges[edges.length - 1];
   if (edge) activate(edge);
   for (const id of ownerChain(index, diagram.id).reverse()) {
-    if ((id === s.from || id === s.to) && !diagram.nodes.includes(id)) {
+    if ((id === s.from || id === s.to) && !drawsElement(diagram, id)) {
       throughHost.append(el("div", { "data-docdive-through": id }, `Scenario passes through ${id}`));
     }
   }
