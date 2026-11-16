@@ -1,4 +1,4 @@
-plan: .cor/plan_20_breadcrumb.md
-task: T07
+plan: .cor/plan_21_slick_ui.md
+task: T01
 phase: done
-started: 2026-11-16T16:18:00
+started: 2026-11-16T16:40:00
