@@ -73,16 +73,18 @@ const getJson = <T>(url: string): Promise<T> => {
 const normPath = (u: string): string =>
   new URL(u, location.href).pathname.replace(/\/index\.html$/, "").replace(/\.html$/, "").replace(/\/+$/, "");
 
+const DARK_TOKENS =
+  "--docdive-bg: #111113; --docdive-border: #2e2e33; --docdive-accent: #818cf8; --docdive-error: #f87171; --docdive-node-fill: #18181b; --docdive-node-stroke: #71717a; --docdive-edge: #a1a1aa;";
+
 const STYLE = `
 :host {
-  --docdive-bg: #fafafa; --docdive-border: #e4e4e7; --docdive-accent: #4f46e5;
-  --docdive-error: #b91c1c; --docdive-radius: 8px; --docdive-space: .75rem; --docdive-duration: 200ms;
+  --docdive-bg: #fafafa; --docdive-border: #e4e4e7; --docdive-accent: #4f46e5; --docdive-error: #b91c1c;
+  --docdive-node-fill: #fff; --docdive-node-stroke: #8e8e96; --docdive-edge: #71717a;
+  --docdive-radius: 8px; --docdive-space: .75rem; --docdive-duration: 200ms;
   display: block;
 }
-@media (prefers-color-scheme: dark) {
-  :host(:not([data-docdive-theme])) { --docdive-bg: #111113; --docdive-border: #2e2e33; --docdive-accent: #818cf8; --docdive-error: #f87171; }
-}
-:host([data-docdive-theme="dark"]) { --docdive-bg: #111113; --docdive-border: #2e2e33; --docdive-accent: #818cf8; --docdive-error: #f87171; }
+@media (prefers-color-scheme: dark) { :host(:not([data-docdive-theme])) { ${DARK_TOKENS} } }
+:host([data-docdive-theme="dark"]) { ${DARK_TOKENS} }
 [data-docdive-node] { cursor: pointer; }
 [data-docdive-error] { color: var(--docdive-error); }
 [data-docdive-error]:not(:empty) { margin-bottom: calc(var(--docdive-space) / 2); }
@@ -104,6 +106,21 @@ button:hover:not(:disabled), select:hover { border-color: var(--docdive-accent);
 button:disabled { opacity: .45; cursor: default; }
 button:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--docdive-accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { button, select { transition: none; } }
+/* Mermaid defaults. Its own <style> uses #id selectors, so these need !important to apply; :where() keeps them at zero
+   specificity, so author classDef (!important + #id) and inline style/linkStyle (inline !important / stroke:) still win. */
+:where(svg .node :is(rect, circle, ellipse, polygon, path):not(.label *)) { fill: var(--docdive-node-fill) !important; stroke: var(--docdive-node-stroke) !important; stroke-width: 1.5px !important; }
+:where(svg .cluster rect) { fill: var(--docdive-bg) !important; stroke: var(--docdive-border) !important; }
+:where(svg .label, svg span, svg p) { color: inherit !important; }
+:where(svg text:not(.sequenceNumber), svg tspan:not(.sequenceNumber)) { fill: currentColor !important; }
+:where(svg path.flowchart-link:not([style*="stroke:"])) { stroke: var(--docdive-edge) !important; }
+:where(svg .edgeLabel, svg .edgeLabel p, svg .labelBkg) { background-color: var(--docdive-bg) !important; }
+:where(svg .edgeLabel rect) { fill: var(--docdive-bg) !important; opacity: 1 !important; }
+:where(svg marker:not([id*="__"]) :is(path, circle, polygon)) { fill: var(--docdive-edge) !important; stroke: var(--docdive-edge) !important; }
+:where(svg rect.actor) { fill: var(--docdive-node-fill) !important; stroke: var(--docdive-node-stroke) !important; stroke-width: 1.5px !important; }
+:where(svg .actor-line) { stroke: var(--docdive-border) !important; }
+:where(svg [class^="messageLine"], svg .loopLine) { stroke: var(--docdive-edge) !important; stroke-width: 1.5px !important; }
+:where(svg .labelBox, svg .note) { fill: var(--docdive-bg) !important; stroke: var(--docdive-border) !important; }
+:where(svg [class^="activation"]) { fill: var(--docdive-border) !important; stroke: var(--docdive-edge) !important; }
 [data-docdive-active].node rect, [data-docdive-active].node polygon, [data-docdive-active].node circle, [data-docdive-active].node path {
   stroke: #e65100 !important; stroke-width: 3px !important;
 }
