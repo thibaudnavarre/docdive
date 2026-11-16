@@ -3,6 +3,7 @@ import {
   annotateFlowchart,
   annotateSequence,
   applyTrace,
+  breadcrumb,
   el,
   hasSeveralFences,
   panelFields,
@@ -76,6 +77,9 @@ const STYLE = `
 [data-docdive-error] { color: #b71c1c; }
 [data-docdive-panel] { margin-top: .5rem; padding: .5rem 1rem; border: 1px solid #ccc; }
 [data-docdive-panel] h2 { margin: 0 0 .5rem; font-size: 1rem; }
+[data-docdive-breadcrumb] { margin-bottom: .5rem; }
+[data-docdive-breadcrumb] ol { display: flex; flex-wrap: wrap; gap: .25rem; margin: 0; padding: 0; list-style: none; }
+[data-docdive-breadcrumb] li + li::before { content: "\\203A"; margin-right: .25rem; }
 [data-docdive-trace] { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-bottom: .5rem; }
 [data-docdive-through] { font-style: italic; }
 [data-docdive-active].node rect, [data-docdive-active].node polygon, [data-docdive-active].node circle, [data-docdive-active].node path {
@@ -119,6 +123,8 @@ export class DocdiveDiagram extends HTMLElement {
   private pauseBtn = el("button", { "data-docdive-pause": "" }, "Pause");
   private stepNo = el("span", { "data-docdive-step": "" }, "0");
   private stepLabel = el("span", { "data-docdive-step-label": "" });
+  private crumbs = el("nav", { "data-docdive-breadcrumb": "", "aria-label": "Breadcrumb" });
+  private crumbLinks: [HTMLAnchorElement, string][] = [];
   private throughHost = el("div", { "data-docdive-through-host": "" });
 
   get source(): string {
@@ -219,6 +225,7 @@ export class DocdiveDiagram extends HTMLElement {
       this.setAttribute("data-docdive-diagram", diagramId);
       this.diagram = diagram;
       this.page = { doc, n };
+      this.renderBreadcrumb();
       this.initTrace();
       this.restoreSelection();
     } catch (e) {
@@ -291,6 +298,43 @@ export class DocdiveDiagram extends HTMLElement {
     const open = this.panel.querySelector("[data-docdive-open]");
     const url = this.selected ? this.openUrl(this.selected) : undefined;
     if (open && url) open.setAttribute("href", url);
+    for (const [a, id] of this.crumbLinks) a.setAttribute("href", this.openUrl(id) ?? "");
+  }
+
+  // Root-to-owner trail above the diagram; absent (no DOM) when the owner has no unambiguous ancestor.
+  private renderBreadcrumb(): void {
+    const trail = this.index && this.page ? breadcrumb(this.index, this.page.doc) : [];
+    this.crumbLinks = [];
+    if (trail.length === 0) return this.crumbs.remove();
+    const ol = el("ol");
+    trail.forEach((id, i) => {
+      const li = el("li");
+      const url = i < trail.length - 1 ? this.openUrl(id) : undefined;
+      if (url) {
+        const a = el("a", { "data-docdive-crumb": id, href: url }, id);
+        this.linkNavigate(a, id);
+        this.crumbLinks.push([a, id]);
+        li.append(a);
+      } else {
+        li.append(el("span", i === trail.length - 1 ? { "data-docdive-crumb": id, "aria-current": "page" } : { "data-docdive-crumb": id }, id));
+      }
+      ol.append(li);
+    });
+    this.crumbs.replaceChildren(ol);
+    this.root.insertBefore(this.crumbs, this.root.querySelector("style")?.nextSibling ?? null);
+  }
+
+  // Lets an SSG route in-app: the cancelable, composed `docdive-navigate` fires before the link is followed.
+  private linkNavigate(a: HTMLAnchorElement, id: string): void {
+    a.addEventListener("click", (e) => {
+      const nav = new CustomEvent("docdive-navigate", {
+        detail: { url: a.getAttribute("href"), id },
+        cancelable: true,
+        bubbles: true,
+        composed: true,
+      });
+      if (!this.dispatchEvent(nav)) e.preventDefault();
+    });
   }
 
   private play(): void {
@@ -376,15 +420,7 @@ export class DocdiveDiagram extends HTMLElement {
     const url = this.openUrl(id);
     if (!url) return;
     const open = el("a", { "data-docdive-open": "", href: url }, `Open ${id}`);
-    open.addEventListener("click", (e) => {
-      const nav = new CustomEvent("docdive-navigate", {
-        detail: { url: open.getAttribute("href"), id },
-        cancelable: true,
-        bubbles: true,
-        composed: true,
-      });
-      if (!this.dispatchEvent(nav)) e.preventDefault();
-    });
+    this.linkNavigate(open, id);
     this.panel.append(open);
   }
 

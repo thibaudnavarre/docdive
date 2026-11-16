@@ -1,4 +1,4 @@
 plan: .cor/plan_20_breadcrumb.md
-task: T02
+task: T03
 phase: done
-started: 2026-11-16T16:01:00
+started: 2026-11-16T16:02:00
