@@ -1,4 +1,4 @@
-import { loadDocs, type Doc } from "./loader.js";
+import { DOC_EXT, loadDocs, type Doc } from "./loader.js";
 import { extractFlowchart } from "./flowchart.js";
 import { attachProse, type Prose } from "./prose.js";
 import { proposeFuzzyIds } from "./fuzzy.js";
@@ -263,7 +263,7 @@ export function buildModel(folder: string, base?: string, options: BuildOptions 
           const sid = doc.frontmatter.id ? String(doc.frontmatter.id) : null;
           if (sid && !(sid in scenarios)) scenarios[sid] = { doc: docPath, steps: seq.steps };
         } else if (!isScenario && seq.steps.length) {
-          const slug = docPath.replace(/\.mdx?$/, "");
+          const slug = docPath.replace(DOC_EXT, "");
           let key = `${id ?? slug}#${block.index}`;
           if (key in scenarios) key = `${slug}#${block.index}`;
           scenarios[key] = { doc: docPath, steps: seq.steps, inferred: true };

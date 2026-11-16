@@ -4,7 +4,7 @@ Turn a folder of Markdown with plain Mermaid diagrams into a **navigable system 
 documentation, trace a scenario across diagrams, copy an element's context for a coding agent.
 
 docdive is not a Mermaid fork and not a diagram editor. Docs stay pure Mermaid plus YAML frontmatter, so they keep
-rendering on GitHub. Remove docdive and nothing breaks.
+rendering on GitHub. Bare `.mmd` files are indexed too, one diagram per file. Remove docdive and nothing breaks.
 
 ## Packages
 
@@ -85,7 +85,7 @@ npx docdive init docs                # adoption report for an existing folder
 npx docdive index docs --out build   # write build/index.json
 npx docdive context OrderService --folder docs   # context bundle to paste into an agent
 npx docdive build docs --out build/docdive       # index, contexts and the element assets
-npx docdive watch docs --out build/docdive       # build, then refresh index.json and contexts.json on every .md/.mdx change
+npx docdive watch docs --out build/docdive       # build, then refresh index.json and contexts.json on every .md/.mdx/.mmd change
 ```
 
 `watch` does not reload the browser: serve the output folder with any static server and refresh the page. Ctrl-C stops it

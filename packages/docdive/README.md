@@ -1,13 +1,13 @@
 # docdive
 
 Indexer and CLI for [docdive](https://github.com/thibaudnavarre/docdive): turns a Markdown folder with plain Mermaid
-diagrams into a system model (`index.json`), lints it, and renders agent-ready context for any element.
+diagrams (or bare `.mmd` files) into a system model (`index.json`), lints it, and renders agent-ready context for any element.
 
 ```bash
 npx docdive lint --docs docs
 npx docdive context OrderService --folder docs
 npx docdive build docs --out build/docdive   # index.json, contexts.json and the <docdive-diagram> assets
-npx docdive watch docs --out build/docdive   # same, then rebuild index.json and contexts.json on every Markdown change
+npx docdive watch docs --out build/docdive   # same, then rebuild index.json and contexts.json on every Markdown or `.mmd` change
 ```
 
 ## Config file

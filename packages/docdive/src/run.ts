@@ -2,6 +2,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, watc
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs, type ParseArgsOptionsConfig } from "node:util";
+import { DOC_EXT } from "./loader.js";
 import { buildModel, type Index } from "./model.js";
 import { loadConventions, renderAgentPrompt } from "./agent-prompt.js";
 import { buildReport, renderReportMarkdown } from "./report.js";
@@ -181,7 +182,7 @@ function watchDocs(rest: string[], io: Io): Promise<number> {
 
     const watcher = fsWatch(root, { recursive: true }, (_event, filename) => {
       if (folderGone()) return finish(EXIT_ERROR, `folder disappeared: ${folder}`);
-      if (!filename || !/\.mdx?$/.test(filename)) return;
+      if (!filename || !DOC_EXT.test(filename)) return;
       const rel = relative(root, resolve(root, filename));
       if (relative(dir, resolve(root, filename)).split(sep)[0] !== "..") return;
       changed.add(rel);

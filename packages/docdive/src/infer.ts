@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
-import type { Doc } from "./loader.js";
+import { DOC_EXT, type Doc } from "./loader.js";
 
 export interface DocMeta {
   id: string;
@@ -8,7 +8,7 @@ export interface DocMeta {
 }
 
 const INDEX_NAME = /^(_index|index|readme)$/i;
-const stem = (path: string) => basename(path).replace(/\.mdx?$/, "");
+const stem = (path: string) => basename(path).replace(DOC_EXT, "");
 const slugify = (text: string) => text.trim().replace(/[^\w]+/g, "-").replace(/^-+|-+$/g, "");
 
 function h1(doc: Doc): string | null {
@@ -69,7 +69,7 @@ export function inferDocIds(docs: Doc[], options: InferOptions = {}): Map<Doc, D
   for (const [id, group] of byCandidate) {
     const clash = group.length > 1 || explicitIds.has(id);
     for (const doc of group) {
-      metas.set(doc, { id: clash ? doc.path.replace(/\.mdx?$/, "") : id, explicit: false });
+      metas.set(doc, { id: clash ? doc.path.replace(DOC_EXT, "") : id, explicit: false });
     }
   }
   return metas;

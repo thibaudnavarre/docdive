@@ -1,4 +1,4 @@
-plan: .cor/plan_21_slick_ui.md
-task: T10
+plan: .cor/plan_22_agent_model.md
+task: T01
 phase: done
-started: 2026-11-16T16:54:36
+started: 2026-11-16T17:13:00

@@ -1,6 +1,6 @@
 # Architecture docs conventions
 
-Document the system as Markdown files under `docs/architecture/`. Each file has YAML frontmatter and one or more ```` ```mermaid ```` blocks. IDs are the glue: the same thing always has the same ID, in every file.
+Document the system as Markdown files under `docs/architecture/`. Each file has YAML frontmatter and one or more ```` ```mermaid ```` blocks. Bare `.mmd` files are also indexed (one diagram each, no frontmatter), but only Markdown can carry `id`, `parent` and `src`. IDs are the glue: the same thing always has the same ID, in every file.
 
 ## IDs
 - An element is a service, module, component, table or actor. Its **ID** is the Mermaid node ID (`OrderService`), never the label (`OrderService[Order Service]`).

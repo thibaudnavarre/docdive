@@ -43,6 +43,7 @@ let renderCount = 0;
 async function mermaidSource(diagramId: string): Promise<string> {
   const [path, n] = diagramId.split("#") as [string, string];
   const md = await (await fetch(`/toy/${path}`)).text();
+  if (path.endsWith(".mmd")) return md;
   const blocks = [...md.matchAll(/```mermaid\n([\s\S]*?)```/g)];
   const block = blocks[Number(n)];
   if (!block) throw new Error(`no mermaid block ${diagramId}`);

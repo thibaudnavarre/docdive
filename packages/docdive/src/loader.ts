@@ -21,13 +21,16 @@ export interface Doc {
   blocks: MermaidBlock[];
 }
 
+/** Files docdive reads: Markdown with fenced diagrams, and bare `.mmd` Mermaid files (one diagram each). */
+export const DOC_EXT = /\.(mdx?|mmd)$/;
+
 function walk(dir: string): string[] {
   return readdirSync(dir)
     .sort()
     .flatMap((name) => {
       const full = join(dir, name);
       if (statSync(full).isDirectory()) return walk(full);
-      return /\.mdx?$/.test(full) ? [full] : [];
+      return DOC_EXT.test(full) ? [full] : [];
     });
 }
 
@@ -83,6 +86,12 @@ export function extractBlocks(body: string, lineOffset = 0): MermaidBlock[] {
 }
 
 export function parseDoc(path: string, raw: string): Doc {
+  if (path.endsWith(".mmd")) {
+    const { source, startLine, title } = stripBlockFrontmatter(raw, 1);
+    const block = { index: 0, startLine, source, type: diagramType(source), ...(title !== undefined && { title }) };
+    // No prose in a bare diagram file: an empty body keeps the diagram source out of "nearest section" text.
+    return { path, frontmatter: {}, body: "", bodyOffset: 0, blocks: [block] };
+  }
   let parsed: matter.GrayMatterFile<string>;
   try {
     parsed = matter(raw);

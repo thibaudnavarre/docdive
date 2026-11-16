@@ -44,6 +44,13 @@ describe("loader", () => {
 });
 
 describe("buildModel on brownfield input", () => {
+  it("indexes bare .mmd files as one diagram each", () => {
+    const root = project({ "sys.mmd": "flowchart LR\n  Api --> Billing", "md.md": "```mermaid\nflowchart LR\n  Billing --> Ledger\n```" });
+    const index = buildModel(root, root);
+    expect(index.diagrams.map((d) => d.id).sort()).toEqual(["md.md#0", "sys.mmd#0"]);
+    expect(index.elements.Billing.appearsIn).toHaveLength(2);
+  });
+
   it("counts unsupported and failed blocks instead of aborting", () => {
     const root = project({
       "d.md": [
