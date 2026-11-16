@@ -24,7 +24,7 @@ export interface Doc {
 /** Files docdive reads: Markdown with fenced diagrams, and bare `.mmd` Mermaid files (one diagram each). */
 export const DOC_EXT = /\.(mdx?|mmd)$/;
 
-function walk(dir: string): string[] {
+export function walk(dir: string): string[] {
   return readdirSync(dir)
     .sort()
     .flatMap((name) => {

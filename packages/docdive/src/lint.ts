@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { loadDocs, type Doc } from "./loader.js";
 import { buildModel, resolveParticipant, type Diagnostic, type Index } from "./model.js";
 import { nearMiss, normalise } from "./fuzzy.js";
+import { hashDocs, loadSidecar, SIDECAR_NAME } from "./sidecar.js";
 
 export interface LintResult {
   errors: Diagnostic[];
@@ -115,16 +116,73 @@ export function lintMissingSrc(docs: Doc[], repoRoot: string): Diagnostic[] {
   return out;
 }
 
+/** Sidecar checks: errors for wrong structure, warnings for drift against the docs. */
+export function lintSidecar(docsFolder: string, repoRoot: string, index: Index): LintResult {
+  const { sidecar } = loadSidecar(docsFolder);
+  const errors: Diagnostic[] = [];
+  const warnings: Diagnostic[] = [];
+  if (!sidecar) return { errors, warnings };
+  const file = SIDECAR_NAME;
+  const entries = Object.entries(sidecar.elements);
+  const diagramNodes = new Set(index.diagrams.flatMap((d) => d.nodes));
+
+  const claims = new Map<string, string[]>();
+  for (const [id, entry] of entries) for (const a of entry.aliases) claims.set(a, [...(claims.get(a) ?? []), id]);
+  for (const [alias, owners] of claims) {
+    const clashes = [...new Set([...owners, ...(alias in sidecar.elements ? [alias] : [])])];
+    if (clashes.length > 1) {
+      errors.push({ rule: "sidecar-alias-conflict", file, alias, elements: clashes, message: `alias "${alias}" is claimed by ${clashes.join(", ")}` });
+    } else if (!diagramNodes.has(alias)) {
+      errors.push({ rule: "sidecar-alias-unused", file, alias, element: owners[0], message: `alias "${alias}" of ${owners[0]} is a node in no diagram` });
+    }
+  }
+
+  const canon = (id: string) => entries.find(([, e]) => e.aliases.includes(id))?.[0] ?? id;
+  for (const [id, entry] of entries) {
+    if (entry.parent) {
+      const parent = canon(entry.parent);
+      const known = parent in sidecar.elements || index.elements[parent]?.doc || index.elements[parent]?.appearsIn.length;
+      if (!known) errors.push({ rule: "sidecar-unknown-parent", file, element: id, parent, message: `${id}: parent "${parent}" is neither a documented element nor in a diagram` });
+      const chain = new Set([id]);
+      for (let p: string | null | undefined = parent; p; p = index.elements[p]?.parent) {
+        if (chain.has(p)) {
+          errors.push({ rule: "sidecar-parent-cycle", file, element: id, message: `${id}: parent chain loops through "${p}"` });
+          break;
+        }
+        chain.add(p);
+      }
+    }
+    for (const path of entry.src) {
+      if (!existsSync(join(repoRoot, path))) errors.push({ rule: "sidecar-missing-src", file, element: id, src: path, message: `${id}: src path "${path}" does not exist` });
+    }
+    const seen = entry.kind === "entity" || [id, ...entry.aliases].some((n) => diagramNodes.has(n)) || !!index.elements[id]?.doc;
+    if (!seen) warnings.push({ rule: "sidecar-orphan-element", file, element: id, message: `${id} appears in no diagram and has no doc; re-run the skill` });
+  }
+
+  const current = hashDocs(docsFolder);
+  const stale = [
+    ...Object.keys(sidecar.sources).filter((d) => current[d] !== undefined && current[d] !== sidecar.sources[d]).map((d) => `${d} (changed)`),
+    ...Object.keys(sidecar.sources).filter((d) => current[d] === undefined).map((d) => `${d} (deleted)`),
+    ...Object.keys(current).filter((d) => !(d in sidecar.sources)).map((d) => `${d} (not stamped)`),
+  ].sort();
+  if (stale.length) warnings.push({ rule: "sidecar-stale-sources", file, sources: stale, message: `${stale.length} doc(s) differ from the model: ${stale.join(", ")}` });
+  return { errors, warnings };
+}
+
 export function lint(docsFolder: string, repoRoot: string): LintResult {
   const docs = loadDocs(docsFolder, repoRoot);
   const index = buildModel(docsFolder, repoRoot);
+  const sidecar = lintSidecar(docsFolder, repoRoot, index);
+  const invalid = index.diagnostics.filter((d) => d.rule === "sidecar-invalid");
   return {
     errors: [
+      ...invalid,
+      ...sidecar.errors,
       ...lintUnresolvedParticipants(index),
       ...lintDuplicateIds(docs),
       ...lintMissingParents(docs),
       ...lintMissingSrc(docs, repoRoot),
     ],
-    warnings: index.diagnostics,
+    warnings: [...index.diagnostics.filter((d) => d.rule !== "sidecar-invalid"), ...sidecar.warnings],
   };
 }

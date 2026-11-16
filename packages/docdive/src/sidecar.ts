@@ -1,6 +1,8 @@
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { parse } from "yaml";
+import { walk } from "./loader.js";
 
 export const SIDECAR_NAME = "docdive.model.yaml";
 
@@ -88,4 +90,14 @@ export function loadSidecar(folder: string): { sidecar: Sidecar | null; problems
       }
   }
   return { sidecar: { file: SIDECAR_NAME, sources, elements }, problems };
+}
+
+/** Doc path (relative to the docs folder) -> short content hash; what `sources` in the sidecar records. */
+export function hashDocs(folder: string): Record<string, string> {
+  return Object.fromEntries(
+    walk(folder).map((file) => [
+      relative(folder, file),
+      createHash("sha256").update(readFileSync(file)).digest("hex").slice(0, 12),
+    ]),
+  );
 }

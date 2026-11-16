@@ -282,6 +282,7 @@ function execute(command: string, rest: string[], io: Io): number | Promise<numb
     else {
       for (const f of fixed ?? []) io.out(`fixed ${f.rule} ${f.file}: ${f.from} -> ${f.to}`);
       for (const e of result.errors) io.out(`error ${e.rule} ${e.file}: ${e.message ?? ""}`);
+      for (const w of result.warnings) if (w.rule.startsWith("sidecar-")) io.out(`warning ${w.rule} ${w.file}: ${w.message ?? ""}`);
       io.out(`${result.errors.length} errors, ${result.warnings.length} warnings`);
     }
     return result.errors.length ? EXIT_ERROR : EXIT_OK;
