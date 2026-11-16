@@ -17,6 +17,10 @@ export interface ContextBundle {
   srcInferred?: SrcHit[];
   docInherited?: Element["docInherited"];
   srcInherited?: Element["srcInherited"];
+  aliases?: string[];
+  description?: string;
+  /** Children that are data entities (also listed in `children`). */
+  entities?: string[];
 }
 
 export function buildContext(index: Index, folder: string, id: string): ContextBundle {
@@ -35,6 +39,7 @@ export function buildContext(index: Index, folder: string, id: string): ContextB
       ...(s.inferred && { inferred: true as const }),
       steps: s.steps.map(({ from, to, label }) => ({ from, to, label })),
     }));
+  const entities = el.children.filter((c) => index.elements[c]?.kind === "entity");
   return {
     id,
     doc: el.doc,
@@ -49,6 +54,9 @@ export function buildContext(index: Index, folder: string, id: string): ContextB
     ...(el.srcInferred && { srcInferred: el.srcInferred }),
     ...(el.docInherited && { docInherited: el.docInherited }),
     ...(el.srcInherited && { srcInherited: el.srcInherited }),
+    ...(el.aliases && { aliases: el.aliases }),
+    ...(el.description && { description: el.description }),
+    ...(entities.length && { entities }),
   };
 }
 
@@ -60,9 +68,18 @@ export function renderContextMarkdown(c: ContextBundle): string {
     ...(c.srcInferred ?? []).map((h) => `${h.path} (inferred, confidence ${h.confidence}, via ${h.via})`),
     ...(c.srcInherited?.paths ?? []).map((p) => `${p} (inherited from ${c.srcInherited!.from})`),
   ];
+  const entities = c.entities ?? [];
+  const head = [
+    `- parent: ${c.parent ?? "(none)"}`,
+    `- doc: ${doc}`,
+    `- confidence: ${c.confidence}`,
+    ...(c.aliases ? [`- aliases: ${c.aliases.join(", ")}`] : []),
+    ...(c.description ? [`- description: ${c.description}`] : []),
+  ];
   const parts = [
-    `# Context: ${c.id}\n\n- parent: ${c.parent ?? "(none)"}\n- doc: ${doc}\n- confidence: ${c.confidence}`,
-    `## Children\n${list(c.children)}`,
+    `# Context: ${c.id}\n\n${head.join("\n")}`,
+    `## Children\n${list(c.children.filter((x) => !entities.includes(x)))}`,
+    ...(entities.length ? [`## Entities\n${list(entities)}`] : []),
     `## Appears in\n${list(c.appearsIn)}`,
     `## Scenarios\n${
       c.scenarios.length
