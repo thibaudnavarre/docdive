@@ -11,6 +11,8 @@ export interface FlowchartResult {
   labels: Record<string, string>;
   edges: [string, string][];
   subgraphs: Subgraph[];
+  /** 1-based line within the source: first declaration with a label (shape, subgraph), else first mention. */
+  lines: Record<string, number>;
 }
 
 const ID = /\w(?:\w|-(?=\w)|::?(?=\w)|\.(?=\w))*/y;
@@ -41,8 +43,11 @@ const SKIP =
   /^[ \t]*(?:%%|flowchart\b|graph\b|direction\b|classDef\b|class\b|style\b|linkStyle\b|click\b|accTitle\b|accDescr\b)/;
 
 export function extractFlowchart(source: string): FlowchartResult {
-  const src = source.replace(/%%\{[\s\S]*?\}%%/g, "");
+  // Blank the directive but keep its newlines so line numbers stay true to the fence.
+  const src = source.replace(/%%\{[\s\S]*?\}%%/g, (m) => m.replace(/[^\n]/g, ""));
   const nodes: string[] = [];
+  const lines: Record<string, number> = {};
+  const declared = new Set<string>();
   const labels: Record<string, string> = {};
   const edges: [string, string][] = [];
   const subgraphs: Subgraph[] = [];
@@ -63,8 +68,11 @@ export function extractFlowchart(source: string): FlowchartResult {
     while (i < src.length && /[ \t]/.test(src[i])) i++;
     if (src.startsWith("%%", i)) i = eol(i);
   };
-  const addNode = (id: string, label: string) => {
+  const lineNo = (pos: number) => src.slice(0, pos).split("\n").length;
+  const addNode = (id: string, label: string, pos: number, isDecl: boolean) => {
     if (!nodes.includes(id)) nodes.push(id);
+    if (!(id in lines) || (isDecl && !declared.has(id))) lines[id] = lineNo(pos);
+    if (isDecl) declared.add(id);
     if (label !== id || !(id in labels)) labels[id] = label;
     const top = stack[stack.length - 1];
     if (top && id !== top.id && !owner.has(id)) {
@@ -72,12 +80,12 @@ export function extractFlowchart(source: string): FlowchartResult {
       top.members.push(id);
     }
   };
-  const openSubgraph = (text: string) => {
+  const openSubgraph = (text: string, pos: number) => {
     const titled = /^([^\s[]+)[ \t]*\[\s*"?(.*?)"?\s*\]$/.exec(text);
     const id = titled ? titled[1] : text.replace(/^"(.*)"$/, "$1");
     const sg: Subgraph = { id, label: titled ? titled[2] : id, parent: stack[stack.length - 1]?.id ?? null, members: [] };
     subgraphs.push(sg);
-    addNode(id, sg.label);
+    addNode(id, sg.label, pos, true);
     stack.push(sg);
   };
 
@@ -86,11 +94,14 @@ export function extractFlowchart(source: string): FlowchartResult {
     const m = ID.exec(src);
     if (!m) throw new Error(`Unrecognised flowchart node syntax: "${lineAt(i)}" (at "${src.slice(i, i + 20)}")`);
     const id = m[0];
+    const pos = i;
+    let isDecl = false;
     i += id.length;
     let label = id;
     const shape = SHAPES.find(([open]) => src.startsWith(open, i));
     if (shape) {
       const [open, closers] = shape;
+      isDecl = true;
       i += open.length;
       label = parseShapeBody(open, closers);
     }
@@ -102,11 +113,12 @@ export function extractFlowchart(source: string): FlowchartResult {
     if (src[i] === "@" && src[i + 1] === "{") {
       const end = src.indexOf("}", i);
       if (end < 0) throw new Error(`Unrecognised flowchart node syntax: "${lineAt(i)}" (at "${src.slice(i, i + 20)}")`);
+      isDecl = true;
       label = /\blabel:\s*"([^"]*)"/.exec(src.slice(i, end))?.[1] ?? id;
       i = end + 1;
     }
     if (src[i] === "@") throw new Error(`Unrecognised flowchart node syntax: "${lineAt(i)}" (at "${src.slice(i - id.length, i + 20)}")`);
-    addNode(id, label);
+    addNode(id, label, pos, isDecl);
     return id;
   };
 
@@ -160,7 +172,7 @@ export function extractFlowchart(source: string): FlowchartResult {
     const line = src.slice(i, lineEnd);
     const sg = /^[ \t]*subgraph\b[ \t]*(.*?)[ \t]*;?$/.exec(line);
     if (sg && sg[1]) {
-      openSubgraph(sg[1]);
+      openSubgraph(sg[1], i);
       i = lineEnd;
       continue;
     }
@@ -186,5 +198,5 @@ export function extractFlowchart(source: string): FlowchartResult {
       i += arrow[0].length;
     }
   }
-  return { nodes, labels, edges, subgraphs };
+  return { nodes, labels, edges, subgraphs, lines };
 }

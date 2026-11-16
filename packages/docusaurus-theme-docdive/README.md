@@ -17,7 +17,17 @@ module.exports = {
 ```
 
 Remove the theme line and the site falls back to the native Mermaid component. The docs folder is taken from the docs
-plugin. Optional theme option: `src` (repo root that `src:` frontmatter paths are relative to, relative to the site dir).
+plugin. Optional theme options:
+
+- `src`: repo root that `src:` frontmatter paths are relative to, relative to the site dir.
+- `sourceUrl`: template for the panel's Source link, with `{path}` (doc path relative to the docs dir) and `{line}`,
+  e.g. `https://git.example.com/org/repo/src/main/docs/{path}#L{line}`. Wins over `editUrl`.
+
+## Source link
+
+Selecting a node can show a **Source** link that opens the repo page at the Markdown line where the node is declared
+(or first mentioned). The URL comes from the docs plugin's `editUrl`: a GitHub `/edit/` or GitLab `/-/edit/` URL is
+rewritten to its `/blob/` view with `#L<line>`. Other hosts need `sourceUrl`. With neither, the link is hidden.
 
 ## Dev mode
 

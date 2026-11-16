@@ -3,6 +3,8 @@ export interface DiagramEntry {
   type: string;
   nodes: string[];
   edges: [string, string][];
+  /** Absolute 1-based Markdown line per node (absent in indexes built before click-to-source). */
+  lines?: Record<string, number>;
 }
 export interface ElementEntry {
   doc: string | null;
@@ -67,6 +69,26 @@ export function panelFields(index: Index, selected: string): [string, string[]][
     ["scenarios", scenarios],
     ["src", e?.src ?? []],
   ];
+}
+
+// Repo web URL of a doc line. A `{path}`/`{line}` template wins; otherwise a GitHub or GitLab edit URL is
+// rewritten to its blob view. Any other host returns null: edit URLs ignore `#L`, guessing risks a dead link.
+export function sourceHref(editUrl: string | undefined, template: string | undefined, docPath: string, line: number): string | null {
+  if (template) return template.replace(/\{path\}/g, encodeURI(docPath)).replace(/\{line\}/g, String(line));
+  if (!editUrl) return null;
+  let url: URL;
+  try {
+    url = new URL(editUrl);
+  } catch {
+    return null;
+  }
+  const gitlab = url.pathname.includes("/-/edit/");
+  if (gitlab) url.pathname = url.pathname.replace("/-/edit/", "/-/blob/");
+  else if (url.hostname === "github.com" && /^\/[^/]+\/[^/]+\/edit\//.test(url.pathname)) url.pathname = url.pathname.replace("/edit/", "/blob/");
+  else return null;
+  url.search = "";
+  url.hash = `L${line}`;
+  return url.href;
 }
 
 // ---- scenario trace (element; the standalone viewer keeps its own copy in main.ts) -------------

@@ -190,6 +190,16 @@ describe("parent candidates", () => {
   });
 });
 
+describe("node lines", () => {
+  it("are absolute Markdown lines, offset past fence frontmatter", () => {
+    const root = project({
+      "a.md": "# A\n\n```mermaid\n---\ntitle: T\n---\nflowchart LR\n  X --> Y[Why]\n```\n\n```mermaid\nsequenceDiagram\n  participant Z\n  Z->>W: hi\n```\n",
+    });
+    const { diagrams } = buildModel(root, root);
+    expect(diagrams.map((d) => d.lines)).toEqual([{ X: 8, Y: 8 }, { Z: 13, W: 14 }]);
+  });
+});
+
 describe("SSG frontmatter id", () => {
   const doc = "---\nid: intro-page\n---\n" + fc("  Server --> Client");
 

@@ -11,7 +11,9 @@ let watcherStarted = false;
  * docdive adapter for Docusaurus. A theme (not a plain plugin), listed after @docusaurus/theme-mermaid so its
  * Mermaid component wraps @theme-init/Mermaid. Data only: the product logic lives in the `docdive` CLI.
  *
- * Options: `src` (repo root for `src:` frontmatter paths, relative to the site dir; optional).
+ * Options: `src` (repo root for `src:` frontmatter paths, relative to the site dir; optional); `sourceUrl`
+ * (click-to-source template with `{path}` = doc path relative to the docs dir and `{line}`; optional, wins over
+ * the docs `editUrl`).
  */
 module.exports = function docdiveTheme(context, options = {}) {
   let docsDir;
@@ -33,10 +35,15 @@ module.exports = function docdiveTheme(context, options = {}) {
       const version = allContent["docusaurus-plugin-content-docs"]?.default?.loadedVersions?.[0];
       docsDir = version?.contentPath;
       docMap = {};
+      const sources = {};
       for (const doc of version?.docs ?? []) {
         const abs = resolve(context.siteDir, doc.source.replace(/^@site\//, ""));
-        docMap[relative(docsDir, abs).split(sep).join("/")] = doc.permalink;
+        const key = relative(docsDir, abs).split(sep).join("/");
+        docMap[key] = doc.permalink;
+        if (doc.editUrl) sources[key] = doc.editUrl;
       }
+      if (Object.keys(sources).length) docMap.sources = sources;
+      if (options.sourceUrl) docMap.sourceUrl = options.sourceUrl;
       // Re-runs on every docs reload under `docusaurus start`, which keeps the dev map fresh.
       writeMap(devDir);
     },

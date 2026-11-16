@@ -25,5 +25,11 @@ Options:
 - `command`: how to run the docdive CLI. Default `npx --yes docdive@<this plugin's version>`; Node >= 22.12 is needed at
   build time.
 - `src`: repo root that `src:` frontmatter paths are relative to (optional).
+- `source_url`: template for the panel's Source link, with `{path}` (doc path relative to `docs_dir`) and `{line}`,
+  e.g. `https://git.example.com/org/repo/src/main/docs/{path}#L{line}`. Wins over `edit_uri` (optional).
+
+Selecting a node can show a **Source** link that opens the repo page at the Markdown line where the node is declared
+(or first mentioned). The URL comes from MkDocs' `repo_url` + `edit_uri`: a GitHub `/edit/` or GitLab `/-/edit/` URL is
+rewritten to its `/blob/` view with `#L<line>`. Other hosts need `source_url`. With neither, the link is hidden.
 
 Supports `mkdocs>=1.6,<2` and Python >= 3.11. MkDocs 2.0 has no plugin system and is not supported. MIT.

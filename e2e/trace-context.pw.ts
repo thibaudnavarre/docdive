@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { docdive, fenceCount, TOY, toyIndex } from "./helpers.js";
+import { docdive, docUrls, fenceCount, TOY, toyIndex } from "./helpers.js";
 
 // One test per item of the frozen checklist in docs/trace-context-findings.md (T1-T9), per SSG.
 // Expected values come from `docdive index fixtures/toy`, the built site's docdive-map.json and the CLI.
@@ -213,7 +213,7 @@ for (const site of SITES) {
     // Same observation as A7 S6 (as amended in docs/ssg-findings.md).
     test(`T9 deletability (${site.name})`, async ({ page }) => {
       const errors = watchErrors(page);
-      for (const doc of Object.keys(map)) {
+      for (const doc of Object.keys(docUrls(map))) {
         await page.goto(`${site.plainOrigin}${map[doc]}`);
         await expect(page.locator("docdive-diagram")).toHaveCount(0);
         if (site.name === "docusaurus") {

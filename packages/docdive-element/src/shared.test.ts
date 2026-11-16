@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { edgeOccurrence, hasSeveralFences, touchesDiagram, urlStateOwner, type DiagramEntry, type Index, type Step } from "./shared.js";
+import { edgeOccurrence, hasSeveralFences, sourceHref, touchesDiagram, urlStateOwner, type DiagramEntry, type Index, type Step } from "./shared.js";
 
 const fwd = (from: string, to: string): Step => ({ from, to, label: "", isReturn: false });
 const ret = (from: string, to: string): Step => ({ from, to, label: "", isReturn: true });
@@ -77,5 +77,29 @@ describe("urlStateOwner", () => {
   it("flags only docs with several fences", () => {
     expect(hasSeveralFences(index, "db.md")).toBe(true);
     expect(hasSeveralFences(index, "one.md")).toBe(false);
+  });
+});
+
+describe("sourceHref", () => {
+  it("rewrites a GitHub edit URL to a blob URL with the line", () => {
+    expect(sourceHref("https://github.com/o/r/edit/main/docs/a.md", undefined, "a.md", 7)).toBe("https://github.com/o/r/blob/main/docs/a.md#L7");
+  });
+
+  it("rewrites a GitLab edit URL, including self-hosted", () => {
+    expect(sourceHref("https://git.example.com/g/p/-/edit/main/docs/a.md", undefined, "a.md", 3)).toBe("https://git.example.com/g/p/-/blob/main/docs/a.md#L3");
+  });
+
+  it("returns null for any other host", () => {
+    expect(sourceHref("https://bitbucket.org/o/r/src/main/docs/a.md?mode=edit", undefined, "a.md", 1)).toBeNull();
+    expect(sourceHref("https://github.com/o/r/blob/main/docs/a.md", undefined, "a.md", 1)).toBeNull();
+  });
+
+  it("lets a template win over the edit URL", () => {
+    expect(sourceHref("https://github.com/o/r/edit/main/a.md", "https://x.dev/{path}?l={line}", "guide/a b.md", 9)).toBe("https://x.dev/guide/a%20b.md?l=9");
+  });
+
+  it("returns null without any input", () => {
+    expect(sourceHref(undefined, undefined, "a.md", 1)).toBeNull();
+    expect(sourceHref("not a url", undefined, "a.md", 1)).toBeNull();
   });
 });

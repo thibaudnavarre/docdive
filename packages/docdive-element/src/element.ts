@@ -6,6 +6,7 @@ import {
   el,
   hasSeveralFences,
   panelFields,
+  sourceHref,
   touchesDiagram,
   urlStateOwner,
   type DiagramEntry,
@@ -34,7 +35,12 @@ export { resolveMermaid, isMermaidApi, type MermaidApi } from "./mermaid-resolve
 // without it the first diagram that matches owns it and the others start idle. Step changes don't rewrite the URL.
 // `docdive-interval` (ms) overrides the play interval.
 
-type DocMap = Record<string, string>;
+// doc -> page URL, plus the reserved `sources` (doc -> edit URL) and `sourceUrl` (template) used for the Source link.
+interface DocMap {
+  [doc: string]: string | Record<string, string> | undefined;
+  sources?: Record<string, string>;
+  sourceUrl?: string;
+}
 
 // Mermaid resolution: a host instance given to `setMermaid`, then a valid `window.mermaid`, then a lazily
 // loaded bundled copy. `data-docdive-mermaid` on the element records which one rendered the diagram
@@ -236,7 +242,7 @@ export class DocdiveDiagram extends HTMLElement {
 
   private identity(): { doc: string; n: number } {
     const explicit = this.getAttribute("doc");
-    const doc = explicit ?? Object.entries(this.map).find(([, url]) => normPath(url) === normPath(location.href))?.[0];
+    const doc = explicit ?? Object.entries(this.map).find(([, url]) => typeof url === "string" && normPath(url) === normPath(location.href))?.[0];
     if (!doc) throw new Error(`no doc for ${location.pathname}`);
     const n = this.getAttribute("n") ?? [...document.querySelectorAll("docdive-diagram")].indexOf(this);
     return { doc, n: Number(n) };
@@ -361,6 +367,10 @@ export class DocdiveDiagram extends HTMLElement {
     });
     const row = el("div");
     row.append(copy, " ", status, " ", link, " ", linkStatus);
+    const line = this.diagram?.lines?.[id];
+    const doc = this.page?.doc;
+    const href = doc && line ? sourceHref(this.map.sources?.[doc], this.map.sourceUrl, doc, line) : null;
+    if (href) row.append(" ", el("a", { "data-docdive-source": "", href, target: "_blank", rel: "noopener" }, "Source"));
     this.panel.append(row);
     const url = this.openUrl(id);
     if (!url) return;
@@ -394,7 +404,8 @@ export class DocdiveDiagram extends HTMLElement {
   // Child doc URL, carrying the trace (scenario + step) when one is active.
   private openUrl(id: string): string | undefined {
     const childDoc = this.index?.elements[id]?.doc;
-    const url = childDoc ? this.map[childDoc] : undefined;
+    const mapped = childDoc ? this.map[childDoc] : undefined;
+    const url = typeof mapped === "string" ? mapped : undefined;
     if (!url || !this.scenario || this.step < 1) return url;
     const q = new URLSearchParams({ "docdive-scenario": this.scenario, "docdive-step": String(this.step) });
     return `${url}${url.includes("?") ? "&" : "?"}${q}`;

@@ -67,6 +67,13 @@ describe("extractFlowchart", () => {
     expect(r.edges).toEqual([["A", "B"]]);
   });
 
+  it("records the declaration line, else the first mention, and ignores multi-line directives", () => {
+    const r = extractFlowchart(
+      'flowchart LR\n  %%{init: {\n"theme": "base"}}%%\n  A --> B\n  B[Bee]\n  subgraph S [Group]\n    C\n  end\n  A --> C',
+    );
+    expect(r.lines).toEqual({ A: 4, B: 5, S: 6, C: 7 });
+  });
+
   it("fails loudly on unsupported node syntax", () => {
     expect(() => extractFlowchart("flowchart LR\n A --> B !!")).toThrow(/Unrecognised|Unsupported/);
     expect(() => extractFlowchart("flowchart LR\n A --> B@oops")).toThrow(/Unrecognised/);
@@ -94,6 +101,13 @@ describe("extractSequence", () => {
     const r = extractSequence("sequenceDiagram\n  accTitle: x\n  participant Git on client\n  Git on client->>Server: push");
     expect(r.participants).toEqual(["Git on client", "Server"]);
     expect(r.steps).toHaveLength(1);
+  });
+
+  it("records the participant declaration line, else the first message, past multi-line blocks", () => {
+    const r = extractSequence(
+      "sequenceDiagram\n  %%{init: {\n\"theme\": \"base\"}}%%\n  accDescr {\n  text\n  }\n  A->>B: x\n  participant B\n  actor C\n  A->>C: y",
+    );
+    expect(r.lines).toEqual({ A: 7, B: 8, C: 9 });
   });
 
   it("fails loudly on unrecognised lines", () => {

@@ -1,4 +1,4 @@
-plan: .cor/plan_18_multi_diagram.md
-task: T08
+plan: .cor/plan_19_click_to_source.md
+task: T11
 phase: done
-started: 2026-11-16T14:54:47
+started: 2026-11-16T15:58:00

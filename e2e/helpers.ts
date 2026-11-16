@@ -14,3 +14,7 @@ export const toyIndex = <T>(): T => JSON.parse(docdive("index", TOY)) as T;
 
 /** Number of Mermaid fences in a fixture doc (path relative to fixtures/toy). */
 export const fenceCount = (doc: string): number => readFileSync(join(TOY, doc), "utf8").match(/^```mermaid$/gm)?.length ?? 0;
+
+/** The doc -> URL entries of docdive-map.json, without the reserved `sources` / `sourceUrl` keys. */
+export const docUrls = (map: Record<string, unknown>): Record<string, string> =>
+  Object.fromEntries(Object.entries(map).filter((e): e is [string, string] => typeof e[1] === "string"));

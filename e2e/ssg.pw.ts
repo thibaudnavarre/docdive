@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ROOT, fenceCount, toyIndex } from "./helpers.js";
+import { ROOT, docUrls, fenceCount, toyIndex } from "./helpers.js";
 
 // One test per item of the frozen checklist in docs/ssg-findings.md (S1-S7), per SSG.
 // Expected values come from `docdive index fixtures/toy`.
@@ -133,7 +133,7 @@ for (const site of SITES) {
 
     test(`S6 deletability (${site.name})`, async ({ page }) => {
       const errors = watchErrors(page);
-      for (const doc of Object.keys(map)) {
+      for (const doc of Object.keys(docUrls(map))) {
         await page.goto(`${site.plainOrigin}${map[doc]}`);
         await expect(page.locator("docdive-diagram")).toHaveCount(0);
         if (site.name === "docusaurus") {
@@ -157,6 +157,6 @@ test("S7 no id: build error (docusaurus)", async () => {
   expect(status).toBe("0");
   expect(log).not.toMatch(/\[ERROR\]|duplicate/i);
   const map = await docMap(SITES[0]!.origin);
-  expect(Object.keys(map).sort()).toEqual(["architecture/order-service.md", "architecture/orders-db.md", "architecture/system.md", "architecture/validator.md", "scenarios/checkout.md"]);
-  expect(new Set(Object.values(map)).size).toBe(5);
+  expect(Object.keys(docUrls(map)).sort()).toEqual(["architecture/order-service.md", "architecture/orders-db.md", "architecture/system.md", "architecture/validator.md", "scenarios/checkout.md"]);
+  expect(new Set(Object.values(docUrls(map))).size).toBe(5);
 });

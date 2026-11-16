@@ -31,7 +31,12 @@ module.exports = {
     [
       "classic",
       {
-        docs: { path: "../../fixtures/toy", routeBasePath: "docs" },
+        docs: {
+          path: "../../fixtures/toy",
+          routeBasePath: "docs",
+          // Feeds the panel's Source link (rewritten from /edit/ to /blob/).
+          editUrl: "https://github.com/thibaudnavarre/docdive/edit/main/fixtures/toy/",
+        },
         blog: false,
         pages: false,
       },

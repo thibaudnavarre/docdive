@@ -2,6 +2,9 @@
 site_name: docdive example
 site_url: http://localhost/docdive/
 docs_dir: ../../fixtures/toy
+# Feeds the panel's Source link (rewritten from /edit/ to /blob/).
+repo_url: https://github.com/thibaudnavarre/docdive
+edit_uri: edit/main/fixtures/toy/
 theme:
   name: material
 markdown_extensions:

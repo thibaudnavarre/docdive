@@ -27,11 +27,14 @@ class DocdiveConfig(base.Config):
     command = c.Type(str, default=f"npx --yes docdive@{__version__}")
     # Repo root that `src:` frontmatter paths are relative to (optional).
     src = c.Optional(c.Type(str))
+    # Click-to-source URL template with `{path}` (doc path relative to docs_dir) and `{line}`; wins over `edit_uri`.
+    source_url = c.Optional(c.Type(str))
 
 
 class DocdivePlugin(BasePlugin[DocdiveConfig]):
     def __init__(self) -> None:
         self.doc_urls: dict[str, str] = {}
+        self.edit_urls: dict[str, str] = {}
 
     def on_config(self, config: MkDocsConfig) -> MkDocsConfig:
         script = c.ExtraScriptValue(ELEMENT_SCRIPT)
@@ -43,9 +46,12 @@ class DocdivePlugin(BasePlugin[DocdiveConfig]):
         # src_uri -> site-absolute URL (site_url path + file url), so the element needs no base-URL logic.
         base_path = urlparse(config.site_url or "").path.rstrip("/")
         self.doc_urls = {f.src_uri: f"{base_path}/{f.url}" for f in files.documentation_pages()}
+        self.edit_urls = {}
         return files
 
     def on_page_content(self, html: str, page: Page, config: MkDocsConfig, files: Files) -> str:
+        if page.edit_url:
+            self.edit_urls[page.file.src_uri] = page.edit_url
         # Wrap the fence before the theme mounts it; the element takes the text out of the light DOM.
         return FENCE.sub(r"<docdive-diagram>\1</docdive-diagram>", html)
 
@@ -62,4 +68,9 @@ class DocdivePlugin(BasePlugin[DocdiveConfig]):
             subprocess.run(args, check=True)
         except subprocess.CalledProcessError as error:
             raise PluginError(f"docdive: `{' '.join(args)}` exited with {error.returncode}") from error
-        (dest / "docdive-map.json").write_text(json.dumps(self.doc_urls, indent=2) + "\n")
+        doc_map: dict[str, object] = dict(self.doc_urls)
+        if self.edit_urls:
+            doc_map["sources"] = self.edit_urls
+        if self.config.source_url:
+            doc_map["sourceUrl"] = self.config.source_url
+        (dest / "docdive-map.json").write_text(json.dumps(doc_map, indent=2) + "\n")

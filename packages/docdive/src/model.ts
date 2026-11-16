@@ -33,6 +33,8 @@ export interface Diagram {
   edges: [string, string][];
   /** Node labels that differ from the node ID (flowcharts only). */
   labels?: Record<string, string>;
+  /** Absolute 1-based Markdown line where each node is declared (or first mentioned). */
+  lines: Record<string, number>;
 }
 
 export interface Scenario {
@@ -228,8 +230,10 @@ export function buildModel(folder: string, base?: string, options: BuildOptions 
 
     for (const { block, diagramId, fc, seq } of parsedByDoc.get(doc) ?? []) {
       ensureDocElement(doc);
+      const absLines = (rel: Record<string, number>) =>
+        Object.fromEntries(Object.entries(rel).map(([nid, n]) => [nid, block.startLine + n - 1]));
       if (fc) {
-        diagrams.push({ id: diagramId, type: "flowchart", nodes: fc.nodes, edges: fc.edges, labels: Object.fromEntries(Object.entries(fc.labels).filter(([k, v]) => v !== k)) });
+        diagrams.push({ id: diagramId, type: "flowchart", nodes: fc.nodes, edges: fc.edges, labels: Object.fromEntries(Object.entries(fc.labels).filter(([k, v]) => v !== k)), lines: absLines(fc.lines) });
         for (const sg of fc.subgraphs) {
           const parent = resolve(sg.id, diagramId);
           for (const member of sg.members) {
@@ -252,6 +256,7 @@ export function buildModel(folder: string, base?: string, options: BuildOptions 
           type: "sequence",
           nodes: seq.participants,
           edges: seq.steps.map((s): [string, string] => [s.from, s.to]),
+          lines: absLines(seq.lines),
         });
         for (const p of seq.participants) resolve(p, diagramId).el.appearsIn.push(diagramId);
         if (isScenario) {

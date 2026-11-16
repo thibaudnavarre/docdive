@@ -8,6 +8,8 @@ export interface SequenceStep {
 export interface SequenceResult {
   participants: string[];
   steps: SequenceStep[];
+  /** 1-based line within the source: `participant`/`actor` declaration, else first message mention. */
+  lines: Record<string, number>;
 }
 
 const NAME = String.raw`[^\s:][^:]*?`;
@@ -18,25 +20,31 @@ const IGNORED = /^\s*(%%|sequenceDiagram\b|title\b|accTitle\b|accDescr\b|autonum
 export function extractSequence(source: string): SequenceResult {
   const participants: string[] = [];
   const steps: SequenceStep[] = [];
-  const add = (id: string) => {
+  const lines: Record<string, number> = {};
+  const declared = new Set<string>();
+  const add = (id: string, line: number, isDecl = false) => {
     if (!participants.includes(id)) participants.push(id);
+    if (!(id in lines) || (isDecl && !declared.has(id))) lines[id] = line;
+    if (isDecl) declared.add(id);
   };
 
-  const cleaned = source.replace(/%%\{[\s\S]*?\}%%/g, "").replace(/^\s*accDescr\s*\{[^}]*\}/gm, "");
-  for (const line of cleaned.split("\n")) {
+  // Blank multi-line blocks but keep their newlines so line numbers stay true to the fence.
+  const blank = (m: string) => m.replace(/[^\n]/g, "");
+  const cleaned = source.replace(/%%\{[\s\S]*?\}%%/g, blank).replace(/^\s*accDescr\s*\{[^}]*\}/gm, blank);
+  for (const [n, line] of cleaned.split("\n").entries()) {
     if (!line.trim()) continue;
     const decl = line.match(DECL);
     if (decl) {
-      add(decl[1]);
+      add(decl[1], n + 1, true);
       continue;
     }
     if (IGNORED.test(line)) continue;
     const m = line.match(MESSAGE);
     if (!m) throw new Error(`Unrecognised sequenceDiagram syntax: "${line.trim()}"`);
     const [, from, arrow, to, label] = m;
-    add(from);
-    add(to);
+    add(from, n + 1);
+    add(to, n + 1);
     steps.push({ from, to, label: label.trim(), isReturn: arrow.startsWith("--") });
   }
-  return { participants, steps };
+  return { participants, steps, lines };
 }
