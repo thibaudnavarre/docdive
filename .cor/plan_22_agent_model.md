@@ -47,7 +47,7 @@ On a copy of `_retrodoc` with an agent-written, lint-clean sidecar, the owner co
 
 - [x] T01: Land `.mmd` indexing (already implemented, uncommitted) and mention `.mmd` in the README and `skill/conventions.md`.
 - [x] T02: Define the `docdive.model.yaml` schema. Per element: `aliases`, `parent`, `description`, `src`, `kind` (`element` | `entity`). Plus top-level `sources: {path: sha}`. The loader parses and validates it; bad YAML or a bad shape becomes a diagnostic, not a crash.
-- [ ] T03: Merge the sidecar into the model with frontmatter > sidecar > inference. Alias node IDs resolve to the canonical element in `appearsIn`, `children` and scenario participants. Add optional `aliases`, `description`, `origin` on elements and an optional `nodeElement` (node ID → element ID) map on diagrams.
+- [x] T03: Merge the sidecar into the model with frontmatter > sidecar > inference. Alias node IDs resolve to the canonical element in `appearsIn`, `children` and scenario participants. Add optional `aliases`, `description`, `origin` on elements and an optional `nodeElement` (node ID → element ID) map on diagrams.
 - [ ] T04: Add sidecar lint rules. Errors: alias used by no diagram, alias claimed by two elements, unknown parent or parent cycle, missing `src`. Warnings: changed or missing `sources`, listing the affected entries.
 - [ ] T05: Add `docdive model stamp <folder>` to write the `sources` hashes into the sidecar.
 - [ ] T06: In `packages/docdive-element/src/shared.ts`, resolve SVG node → element through `nodeElement` (fall back to the node ID), so highlight, deep dive and scenario trace work across aliases. Show `description` in the panel.

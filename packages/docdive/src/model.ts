@@ -5,6 +5,7 @@ import { proposeFuzzyIds } from "./fuzzy.js";
 import { inferSrc, type SrcHit } from "./src.js";
 import { detectSsg, findParentDoc, inferDocIds } from "./infer.js";
 import { extractSequence, type SequenceStep } from "./sequence.js";
+import { loadSidecar } from "./sidecar.js";
 
 export type Scope = "global" | "local" | "placeholder";
 
@@ -24,6 +25,14 @@ export interface Element {
   docInherited?: { path: string; from: string };
   /** Declared `src` of the nearest ancestor that declares any; set only when this element declares none. */
   srcInherited?: { paths: string[]; from: string };
+  /** Other node IDs that mean this element, declared in the sidecar. */
+  aliases?: string[];
+  /** Sidecar description (doc frontmatter `description` wins and leaves this unset). */
+  description?: string;
+  /** Set when the sidecar supplied any field of this element. */
+  origin?: "sidecar";
+  /** `entity` for data entities declared in the sidecar; absent for ordinary elements. */
+  kind?: "entity";
 }
 
 export interface Diagram {
@@ -35,6 +44,8 @@ export interface Diagram {
   labels?: Record<string, string>;
   /** Absolute 1-based Markdown line where each node is declared (or first mentioned). */
   lines: Record<string, number>;
+  /** Node ID -> element ID, only for nodes that are aliases of another element. Absent when none. */
+  nodeElement?: Record<string, string>;
 }
 
 export interface Scenario {
@@ -101,11 +112,20 @@ export interface BuildOptions {
 export function buildModel(folder: string, base?: string, options: BuildOptions = {}): Index {
   const docs = loadDocs(folder, base);
   const relDoc = (d: Doc) => d.path;
+  const { sidecar, problems } = loadSidecar(folder);
+  const sidecarEls = sidecar?.elements ?? {};
+  const aliasOf = new Map<string, string>();
+  for (const [cid, entry] of Object.entries(sidecarEls)) {
+    for (const alias of entry.aliases) if (!aliasOf.has(alias) && alias !== cid) aliasOf.set(alias, cid);
+  }
+  const canon = (nid: string) => aliasOf.get(nid) ?? nid;
+  const inSidecar = (nid: string) => nid in sidecarEls || aliasOf.has(nid);
+  const explicitParent = new Set<string>();
 
   const elements: Record<string, Element> = {};
   const diagrams: Diagram[] = [];
   const scenarios: Record<string, Scenario> = {};
-  const diagnostics: Diagnostic[] = [];
+  const diagnostics: Diagnostic[] = [...problems];
   const stats: Stats = {
     docs: docs.length,
     blocks: 0,
@@ -137,7 +157,8 @@ export function buildModel(folder: string, base?: string, options: BuildOptions 
     el.src = asStringArray(doc.frontmatter.src);
     el.confidence = meta.explicit ? 1 : 0.6;
     if (doc.frontmatter.parent) {
-      el.parent = String(doc.frontmatter.parent);
+      el.parent = canon(String(doc.frontmatter.parent));
+      explicitParent.add(meta.id);
       link(el.parent, meta.id);
       return;
     }
@@ -220,8 +241,8 @@ export function buildModel(folder: string, base?: string, options: BuildOptions 
     };
     /** Global IDs share one element; local/placeholder IDs get one element per diagram. */
     const resolve = (nid: string, diagramId: string): { key: string; el: Element } => {
-      const scope = scopeOf(nid);
-      if (scope === "global") return { key: nid, el: get(nid) };
+      const scope = inSidecar(nid) ? "global" : scopeOf(nid);
+      if (scope === "global") return { key: canon(nid), el: get(canon(nid)) };
       const key = localKey(diagramId, nid);
       return { key, el: (elements[key] ??= newElement(scope)) };
     };
@@ -232,22 +253,26 @@ export function buildModel(folder: string, base?: string, options: BuildOptions 
       ensureDocElement(doc);
       const absLines = (rel: Record<string, number>) =>
         Object.fromEntries(Object.entries(rel).map(([nid, n]) => [nid, block.startLine + n - 1]));
+      const nodeElement = (nodes: string[]) => {
+        const map = Object.fromEntries(nodes.filter((n) => aliasOf.has(n)).map((n) => [n, canon(n)]));
+        return Object.keys(map).length ? { nodeElement: map } : {};
+      };
       if (fc) {
-        diagrams.push({ id: diagramId, type: "flowchart", nodes: fc.nodes, edges: fc.edges, labels: Object.fromEntries(Object.entries(fc.labels).filter(([k, v]) => v !== k)), lines: absLines(fc.lines) });
+        diagrams.push({ id: diagramId, type: "flowchart", nodes: fc.nodes, edges: fc.edges, labels: Object.fromEntries(Object.entries(fc.labels).filter(([k, v]) => v !== k)), lines: absLines(fc.lines), ...nodeElement(fc.nodes) });
         for (const sg of fc.subgraphs) {
           const parent = resolve(sg.id, diagramId);
           for (const member of sg.members) {
             const m = resolve(member, diagramId);
             if (parent.el.scope !== "global" || m.el.scope !== "global") continue;
-            addCandidate(sg.id, member);
+            addCandidate(canon(sg.id), canon(member));
           }
         }
         for (const node of fc.nodes) {
           const { el } = resolve(node, diagramId);
-          el.appearsIn.push(diagramId);
+          if (!el.appearsIn.includes(diagramId)) el.appearsIn.push(diagramId);
           // Only docs with an explicit `id:` own the nodes of their diagrams.
-          if (id && metas.get(doc)?.explicit && !isScenario && node !== id && el.scope === "global") {
-            addCandidate(id, node);
+          if (id && metas.get(doc)?.explicit && !isScenario && canon(node) !== id && el.scope === "global") {
+            addCandidate(id, canon(node));
           }
         }
       } else if (seq) {
@@ -257,18 +282,40 @@ export function buildModel(folder: string, base?: string, options: BuildOptions 
           nodes: seq.participants,
           edges: seq.steps.map((s): [string, string] => [s.from, s.to]),
           lines: absLines(seq.lines),
+          ...nodeElement(seq.participants),
         });
-        for (const p of seq.participants) resolve(p, diagramId).el.appearsIn.push(diagramId);
+        for (const p of seq.participants) {
+          const { el } = resolve(p, diagramId);
+          if (!el.appearsIn.includes(diagramId)) el.appearsIn.push(diagramId);
+        }
+        const steps = aliasOf.size ? seq.steps.map((st) => ({ ...st, from: canon(st.from), to: canon(st.to) })) : seq.steps;
         if (isScenario) {
           const sid = doc.frontmatter.id ? String(doc.frontmatter.id) : null;
-          if (sid && !(sid in scenarios)) scenarios[sid] = { doc: docPath, steps: seq.steps };
-        } else if (!isScenario && seq.steps.length) {
+          if (sid && !(sid in scenarios)) scenarios[sid] = { doc: docPath, steps };
+        } else if (!isScenario && steps.length) {
           const slug = docPath.replace(DOC_EXT, "");
           let key = `${id ?? slug}#${block.index}`;
           if (key in scenarios) key = `${slug}#${block.index}`;
-          scenarios[key] = { doc: docPath, steps: seq.steps, inferred: true };
+          scenarios[key] = { doc: docPath, steps, inferred: true };
         }
       }
+    }
+  }
+
+  /** Precedence: doc frontmatter > sidecar > inference. */
+  function mergeSidecar(): void {
+    for (const [cid, entry] of Object.entries(sidecarEls)) {
+      const el = get(cid);
+      el.origin = "sidecar";
+      if (entry.aliases.length) el.aliases = entry.aliases;
+      if (entry.kind === "entity") el.kind = "entity";
+      if (entry.parent && !explicitParent.has(cid)) {
+        el.parent = canon(entry.parent);
+        link(el.parent, cid);
+      }
+      if (entry.src.length && !el.src.length) el.src = entry.src;
+      const doc = docs.find((d) => relDoc(d) === el.doc);
+      if (entry.description && typeof doc?.frontmatter.description !== "string") el.description = entry.description;
     }
   }
 
@@ -281,6 +328,7 @@ export function buildModel(folder: string, base?: string, options: BuildOptions 
       labels: [...variants.keys()],
     });
   }
+  mergeSidecar();
   for (const el of Object.values(elements)) {
     if (!el.parent && el.parentCandidates.length === 1) el.parent = el.parentCandidates[0];
   }
@@ -333,9 +381,11 @@ export function lintEdgeNotInDiagram(index: Index): Diagnostic[] {
     if (scenario.inferred) continue;
     scenario.steps.forEach((step, i) => {
       for (const d of index.diagrams) {
-        if (d.type !== "flowchart" || !d.nodes.includes(step.from) || !d.nodes.includes(step.to)) continue;
+        const el = (n: string) => d.nodeElement?.[n] ?? n;
+        const has = (id: string) => d.nodes.some((n) => el(n) === id);
+        if (d.type !== "flowchart" || !has(step.from) || !has(step.to)) continue;
         const found = d.edges.some(
-          ([a, b]) => (a === step.from && b === step.to) || (a === step.to && b === step.from),
+          ([a, b]) => (el(a) === step.from && el(b) === step.to) || (el(a) === step.to && el(b) === step.from),
         );
         if (!found) {
           out.push({

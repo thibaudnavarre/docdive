@@ -22,12 +22,12 @@ export interface Sidecar {
   elements: Record<string, SidecarElement>;
 }
 
-export interface SidecarProblem {
+export type SidecarProblem = {
   rule: "sidecar-invalid";
   file: string;
   message: string;
   element?: string;
-}
+};
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const isStringList = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
