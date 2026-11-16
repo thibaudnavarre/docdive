@@ -14,14 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v10.3.3
 
       - name: Tag matches every package version
         run: |
@@ -48,13 +48,12 @@ jobs:
       contents: read
       id-token: write # npm trusted publishing (OIDC); also signs the provenance attestation
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      # No registry-url (it writes a deprecated always-auth) and no cache: this job publishes.
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: npm
-          registry-url: https://registry.npmjs.org
 
       # Trusted publishing needs npm >= 11.5.1; Node 22 ships npm 10.
       - run: npm install -g npm@^11.5.1
@@ -75,8 +74,8 @@ jobs:
       contents: read
       id-token: write # PyPI trusted publishing
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
       - run: |
           uv build --out-dir dist
           uv publish --trusted-publishing always dist/*
