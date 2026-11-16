@@ -60,4 +60,4 @@ Give the `<docdive-diagram>` web component an elegant, modern, Linear/Vercel-sty
 - [x] T07: Add Material palette toggle (default/slate) to `examples/mkdocs/mkdocs.yml` and `classDef`/`class`/`style` to the second `OrdersDB` diagram in `fixtures/toy/architecture/orders-db.md`
 - [x] T08: Run `npm run e2e` and `npm run examples:build && npm run e2e:ssg`; keep all green [integration]
 - [x] T09: Document theming, `--docdive-*` properties and motion in `docs/architecture/docdive-element.md` and the element README
-- [ ] T10: Owner walkthrough on both example sites: light/dark, live toggle, reduced motion, author-styled diagram, Chromium/Firefox/Safari [UAT]
+- [x] T10: Owner walkthrough on both example sites: light/dark, live toggle, reduced motion, author-styled diagram, Chromium/Firefox/Safari [UAT]
