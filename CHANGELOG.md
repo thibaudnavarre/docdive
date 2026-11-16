@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- `docdive.config.json` (`docs`, `src`, `out`): defaults for `index`, `build` and `watch`; the `<folder>` argument and flags win.
+- `<docdive-diagram>` checks the `index.json` `version` and shows a clear error when it is not the one it reads. The schema policy is in `docs/releasing.md`.
+- Releases are published from CI on a `v*` tag with npm and PyPI trusted publishing (no tokens, no 2FA prompt).
+
 ## 0.2.0 - 2026-11-16
 
 - `docdive watch <folder> --out <dir>`: runs `build`, then rewrites `index.json` and `contexts.json` on every `.md` / `.mdx` change. Ctrl-C exits 0; exits 1 if the docs folder disappears.

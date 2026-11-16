@@ -7,6 +7,7 @@ import { buildReport, renderReportMarkdown } from "./report.js";
 import { lint } from "./lint.js";
 import { applyFixes } from "./fix.js";
 import { floorStats } from "./floor.js";
+import { loadConfig } from "./config.js";
 import { buildContext, renderAllContexts, renderContextMarkdown } from "./context.js";
 
 export interface Io {
@@ -14,6 +15,8 @@ export interface Io {
   err: (line: string) => void;
   /** Stops a long-running command (`watch`); the process entry point aborts it on SIGINT/SIGTERM. */
   signal?: AbortSignal;
+  /** Where `docdive.config.json` is looked up; defaults to the process working directory. */
+  cwd?: string;
 }
 
 export const EXIT_OK = 0;
@@ -23,14 +26,17 @@ export const EXIT_USAGE = 2;
 export const USAGE = `usage: docdive <command> [options]
 
 commands:
-  index <folder> [--out <dir>] [--src <repoRoot>]   write <dir>/index.json (stdout when --out is omitted)
-  build <folder> --out <dir> [--src <repoRoot>]     write index.json, contexts.json and the <docdive-diagram> assets
-  watch <folder> --out <dir> [--src <repoRoot>]     build, then rebuild index.json and contexts.json on every Markdown change
+  index [folder] [--out <dir>] [--src <repoRoot>]   write <dir>/index.json (stdout when --out is omitted)
+  build [folder] --out <dir> [--src <repoRoot>]     write index.json, contexts.json and the <docdive-diagram> assets
+  watch [folder] --out <dir> [--src <repoRoot>]     build, then rebuild index.json and contexts.json on every Markdown change
   init <folder> [--json] [--src <repoRoot>]
   context <elementId> --folder <folder> [--json]
   context --all --folder <folder>                   JSON map { elementId: markdown }
   stats [--json] [--root <repo>] [--docs <folder>]
   lint [--json] [--fix] [--root <repo>] [--docs <folder>]   docs default: <root>/docs
+
+docdive.config.json in the current folder sets defaults for index, build and watch: { "docs", "src", "out" }.
+Flags and the <folder> argument win. Paths are relative to the config file.
 
 options:
   -h, --help       show this help
@@ -66,6 +72,24 @@ function parse<const T extends ParseArgsOptionsConfig>(args: string[], options: 
     if (e instanceof UsageError) throw e;
     throw new UsageError((e as Error).message);
   }
+}
+
+interface Target {
+  /** The docs folder as typed, or the configured absolute path; not yet checked for existence. */
+  folder: string;
+  out: string | undefined;
+  srcRoot: string | undefined;
+}
+
+/** Resolves `<folder> [--out] [--src]` for index/build/watch; flags beat `docdive.config.json`. */
+function target(command: string, rest: string[], io: Io, opts: { configOut: boolean }): Target {
+  const { values, pos } = parse(rest, { out: { type: "string" }, src: { type: "string" } }, 1);
+  const config = loadConfig(io.cwd ?? process.cwd());
+  const folder = pos[0] ?? config.docs;
+  if (!folder) throw new UsageError(`${command}: missing <folder> (or "docs" in docdive.config.json)`);
+  const out = typeof values.out === "string" ? resolve(values.out) : opts.configOut ? config.out : undefined;
+  const src = typeof values.src === "string" ? resolve(values.src) : config.src;
+  return { folder, out, srcRoot: src };
 }
 
 function summarise(index: Index): string {
@@ -106,12 +130,10 @@ function requireFolder(path: string): string {
 const WATCH_DEBOUNCE_MS = 100;
 
 function watchDocs(rest: string[], io: Io): Promise<number> {
-  const { values, pos } = parse(rest, { out: { type: "string" }, src: { type: "string" } }, 1);
-  if (!pos[0]) throw new UsageError("watch: missing <folder>");
-  if (typeof values.out !== "string") throw new UsageError("watch: missing --out <dir>");
-  const root = requireFolder(pos[0]);
-  const dir = resolve(values.out);
-  const srcRoot = typeof values.src === "string" ? resolve(values.src) : undefined;
+  const { folder, out, srcRoot } = target("watch", rest, io, { configOut: true });
+  if (!out) throw new UsageError("watch: missing --out <dir>");
+  const root = requireFolder(folder);
+  const dir = out;
 
   const rebuild = (): Index => {
     const index = buildModel(root, root, { srcRoot });
@@ -128,7 +150,7 @@ function watchDocs(rest: string[], io: Io): Promise<number> {
     status = `initial build failed: ${(e as Error).message}`;
   }
   copyAssets(dir);
-  io.err(`[${stamp()}] watching ${pos[0]}: ${status}`);
+  io.err(`[${stamp()}] watching ${folder}: ${status}`);
 
   return new Promise<number>((resolveRun) => {
     const changed = new Set<string>();
@@ -147,17 +169,17 @@ function watchDocs(rest: string[], io: Io): Promise<number> {
     const flush = () => {
       const files = [...changed].sort().join(", ");
       changed.clear();
-      if (folderGone()) return finish(EXIT_ERROR, `folder disappeared: ${pos[0]}`);
+      if (folderGone()) return finish(EXIT_ERROR, `folder disappeared: ${folder}`);
       try {
         io.err(`[${stamp()}] ${files}: ${summarise(rebuild())}`);
       } catch (e) {
-        if (folderGone()) return finish(EXIT_ERROR, `folder disappeared: ${pos[0]}`);
+        if (folderGone()) return finish(EXIT_ERROR, `folder disappeared: ${folder}`);
         io.err(`docdive: rebuild failed: ${(e as Error).message}`);
       }
     };
 
     const watcher = fsWatch(root, { recursive: true }, (_event, filename) => {
-      if (folderGone()) return finish(EXIT_ERROR, `folder disappeared: ${pos[0]}`);
+      if (folderGone()) return finish(EXIT_ERROR, `folder disappeared: ${folder}`);
       if (!filename || !/\.mdx?$/.test(filename)) return;
       const rel = relative(root, resolve(root, filename));
       if (relative(dir, resolve(root, filename)).split(sep)[0] !== "..") return;
@@ -174,29 +196,23 @@ function watchDocs(rest: string[], io: Io): Promise<number> {
 
 function execute(command: string, rest: string[], io: Io): number | Promise<number> {
   if (command === "index") {
-    const { values, pos } = parse(rest, { out: { type: "string" }, src: { type: "string" } }, 1);
-    if (!pos[0]) throw new UsageError("index: missing <folder>");
-    const root = requireFolder(pos[0]);
-    const srcRoot = typeof values.src === "string" ? resolve(values.src) : undefined;
+    const { folder, out, srcRoot } = target("index", rest, io, { configOut: false });
+    const root = requireFolder(folder);
     const index = buildModel(root, root, { srcRoot });
     const json = JSON.stringify(sortKeys(index), null, 2) + "\n";
-    if (typeof values.out === "string") {
-      const dir = resolve(values.out);
-      mkdirSync(dir, { recursive: true });
-      writeFileSync(join(dir, "index.json"), json);
+    if (out) {
+      mkdirSync(out, { recursive: true });
+      writeFileSync(join(out, "index.json"), json);
     } else io.out(json.trimEnd());
     io.err(summarise(index));
     return EXIT_OK;
   }
 
   if (command === "build") {
-    const { values, pos } = parse(rest, { out: { type: "string" }, src: { type: "string" } }, 1);
-    if (!pos[0]) throw new UsageError("build: missing <folder>");
-    if (typeof values.out !== "string") throw new UsageError("build: missing --out <dir>");
-    const root = requireFolder(pos[0]);
-    const srcRoot = typeof values.src === "string" ? resolve(values.src) : undefined;
+    const { folder, out: dir, srcRoot } = target("build", rest, io, { configOut: true });
+    if (!dir) throw new UsageError("build: missing --out <dir>");
+    const root = requireFolder(folder);
     const index = buildModel(root, root, { srcRoot });
-    const dir = resolve(values.out);
     writeOutputs(index, root, dir);
     copyAssets(dir);
     io.err(summarise(index));

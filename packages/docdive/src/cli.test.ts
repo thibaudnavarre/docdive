@@ -23,10 +23,10 @@ function docs(): string {
   return folder;
 }
 
-function exec(args: string[]) {
+function exec(args: string[], cwd?: string) {
   const out: string[] = [];
   const err: string[] = [];
-  const code = run(args, { out: (l) => out.push(l), err: (l) => err.push(l) });
+  const code = run(args, { out: (l) => out.push(l), err: (l) => err.push(l), cwd });
   if (typeof code !== "number") throw new Error("exec: command is asynchronous");
   return { code, out: out.join("\n"), err: err.join("\n") };
 }
@@ -103,6 +103,46 @@ describe("build", () => {
     expect(files).toEqual(expect.arrayContaining(["index.json", "contexts.json", "docdive-element.js"]));
     const contexts = JSON.parse(readFileSync(join(out, "contexts.json"), "utf8")) as Record<string, string>;
     expect(contexts.A).toContain("# Context: A");
+  });
+});
+
+describe("docdive.config.json", () => {
+  const site = (config: unknown) => {
+    const root = tmp();
+    mkdirSync(join(root, "docs"));
+    writeFileSync(join(root, "docs", "a.md"), "---\nid: A\n---\n```mermaid\nflowchart LR\n  X[Alpha] --> Y[Beta]\n```\n");
+    writeFileSync(join(root, "docdive.config.json"), typeof config === "string" ? config : JSON.stringify(config));
+    return root;
+  };
+
+  it("supplies docs and out to build, relative to the config file", () => {
+    const root = site({ docs: "docs", out: "dist" });
+    expect(exec(["build"], root).code).toBe(EXIT_OK);
+    expect(readFileSync(join(root, "dist", "index.json"), "utf8")).toContain("Alpha");
+  });
+
+  it("lets flags win over the config", () => {
+    const root = site({ docs: "missing", out: "dist" });
+    expect(exec(["build", join(root, "docs"), "--out", join(root, "other")], root).code).toBe(EXIT_OK);
+    expect(existsSync(join(root, "other", "index.json"))).toBe(true);
+    expect(existsSync(join(root, "dist"))).toBe(false);
+  });
+
+  it("does not turn index output into a file write", () => {
+    const root = site({ docs: "docs", out: "dist" });
+    const r = exec(["index"], root);
+    expect(r.out).toContain('"version": 1');
+    expect(existsSync(join(root, "dist"))).toBe(false);
+  });
+
+  it.each([
+    ["not json{", "docdive.config.json:"],
+    [{ docs: 3 }, '"docs" must be a non-empty string'],
+    [{ docz: "x" }, 'unknown option "docz"'],
+  ])("rejects an invalid config %j", (config, message) => {
+    const r = exec(["index"], site(config));
+    expect(r.code).toBe(EXIT_ERROR);
+    expect(r.err).toContain(message);
   });
 });
 

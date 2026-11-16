@@ -1,0 +1,83 @@
+name: Release
+
+# Push a tag like v0.3.0 to publish all four packages. No tokens: npm and PyPI trust this workflow through OIDC
+# (trusted publishing), so each registry must list this repository and workflow file. See docs/releasing.md.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Tag matches every package version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          for f in packages/docdive-element packages/docdive packages/docusaurus-theme-docdive; do
+            v="$(node -p "require('./$f/package.json').version")"
+            [ "$v" = "$tag" ] || { echo "$f is $v, tag is $tag"; exit 1; }
+          done
+          py="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' packages/mkdocs-docdive/src/mkdocs_docdive/__init__.py)"
+          [ "$py" = "$tag" ] || { echo "mkdocs-docdive is $py, tag is $tag"; exit 1; }
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: uvx ruff check .
+
+  publish-npm:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing (OIDC); also signs the provenance attestation
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs npm >= 11.5.1; Node 22 ships npm 10.
+      - run: npm install -g npm@^11.5.1
+      - run: npm ci
+      - run: npm run build
+
+      # Dependency order: the theme needs docdive, docdive needs the element.
+      - run: |
+          npm publish -w docdive-element
+          npm publish -w docdive
+          npm publish -w docusaurus-theme-docdive
+
+  publish-pypi:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # PyPI trusted publishing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: |
+          uv build --out-dir dist
+          uv publish --trusted-publishing always dist/*
+        working-directory: packages/mkdocs-docdive

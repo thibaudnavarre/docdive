@@ -11,7 +11,10 @@ export interface ElementEntry {
   appearsIn?: string[];
   src?: string[];
 }
+/** index.json schema version this element reads. Bumped only for breaking changes to the index shape. */
+export const INDEX_VERSION = 1;
 export interface Index {
+  version?: number;
   diagrams: DiagramEntry[];
   elements: Record<string, ElementEntry>;
   scenarios: Record<string, { doc: string; steps: { from: string; to: string; label: string; isReturn: boolean }[] }>;

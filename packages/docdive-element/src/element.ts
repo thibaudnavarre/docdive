@@ -7,6 +7,7 @@ import {
   panelFields,
   touchesDiagram,
   type DiagramEntry,
+  INDEX_VERSION,
   type Index,
 } from "./shared.js";
 
@@ -170,6 +171,11 @@ export class DocdiveDiagram extends HTMLElement {
       );
       // The doc -> URL map is only needed to find the doc from the page URL; an explicit `doc` attribute works without it.
       [this.index, this.map] = await Promise.all([getJson<Index>(indexUrl), getJson<DocMap>(mapUrl).catch(() => ({}))]);
+      if (this.index.version !== INDEX_VERSION) {
+        return this.fail(
+          `docdive: index.json has schema version ${this.index.version ?? "none"}, this element reads version ${INDEX_VERSION}. Rebuild the index with a matching docdive.`,
+        );
+      }
       const { doc, n } = this.identity();
       const diagramId = `${doc}#${n}`;
       const diagram = this.index.diagrams.find((d) => d.id === diagramId);
