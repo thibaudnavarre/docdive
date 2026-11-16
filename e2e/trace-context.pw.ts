@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { docdive, TOY, toyIndex } from "./helpers.js";
+import { docdive, fenceCount, TOY, toyIndex } from "./helpers.js";
 
 // One test per item of the frozen checklist in docs/trace-context-findings.md (T1-T9), per SSG.
 // Expected values come from `docdive index fixtures/toy`, the built site's docdive-map.json and the CLI.
@@ -217,12 +217,12 @@ for (const site of SITES) {
         await page.goto(`${site.plainOrigin}${map[doc]}`);
         await expect(page.locator("docdive-diagram")).toHaveCount(0);
         if (site.name === "docusaurus") {
-          await expect(page.locator(".docusaurus-mermaid-container svg")).toHaveCount(1);
+          await expect(page.locator(".docusaurus-mermaid-container svg")).toHaveCount(fenceCount(doc));
         } else {
           await expect(page.locator("pre.mermaid")).toHaveCount(0);
           const box = page.locator("div.mermaid");
-          await expect(box).toHaveCount(1);
-          await expect.poll(async () => (await box.boundingBox())?.height ?? 0).toBeGreaterThan(50);
+          await expect(box).toHaveCount(fenceCount(doc));
+          await expect.poll(async () => (await box.first().boundingBox())?.height ?? 0).toBeGreaterThan(50);
         }
       }
       expect(errors).toEqual([]);

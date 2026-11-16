@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { edgeOccurrence, touchesDiagram, type DiagramEntry, type Index, type Step } from "./shared.js";
+import { edgeOccurrence, hasSeveralFences, touchesDiagram, urlStateOwner, type DiagramEntry, type Index, type Step } from "./shared.js";
 
 const fwd = (from: string, to: string): Step => ({ from, to, label: "", isReturn: false });
 const ret = (from: string, to: string): Step => ({ from, to, label: "", isReturn: true });
@@ -47,5 +47,35 @@ describe("touchesDiagram", () => {
   it("is false otherwise, and for an unknown scenario", () => {
     expect(touchesDiagram(index, "checkout", diagram("billing.md#0", ["Invoice"]))).toBe(false);
     expect(touchesDiagram(index, "nope", diagram("system.md#0", ["API", "Orders"]))).toBe(false);
+  });
+});
+
+describe("urlStateOwner", () => {
+  const diagram = (id: string, nodes: string[]): DiagramEntry => ({ id, type: "flowchart", nodes, edges: [] });
+  const index: Index = {
+    diagrams: [diagram("db.md#1", ["Pool", "Replica"]), diagram("db.md#0", ["Pool", "Primary"]), diagram("db.md#2", ["Other"]), diagram("one.md#0", ["Pool"])],
+    elements: {},
+    scenarios: {},
+  };
+  const hasPool = (d: DiagramEntry) => d.nodes.includes("Pool");
+
+  it("gives an unqualified URL to the first matching fence of the doc", () => {
+    expect(urlStateOwner(index, "db.md", null, hasPool)).toBe(0);
+  });
+
+  it("gives a qualified URL to the named fence only when it matches", () => {
+    expect(urlStateOwner(index, "db.md", 1, hasPool)).toBe(1);
+    expect(urlStateOwner(index, "db.md", 2, hasPool)).toBeUndefined();
+    expect(urlStateOwner(index, "db.md", 9, hasPool)).toBeUndefined();
+  });
+
+  it("is undefined when no fence matches, and ignores other docs", () => {
+    expect(urlStateOwner(index, "db.md", null, (d) => d.nodes.includes("Nope"))).toBeUndefined();
+    expect(urlStateOwner(index, "one.md", null, hasPool)).toBe(0);
+  });
+
+  it("flags only docs with several fences", () => {
+    expect(hasSeveralFences(index, "db.md")).toBe(true);
+    expect(hasSeveralFences(index, "one.md")).toBe(false);
   });
 });

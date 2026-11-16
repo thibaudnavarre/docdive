@@ -4,8 +4,10 @@ import {
   annotateSequence,
   applyTrace,
   el,
+  hasSeveralFences,
   panelFields,
   touchesDiagram,
+  urlStateOwner,
   type DiagramEntry,
   INDEX_VERSION,
   type Index,
@@ -28,7 +30,9 @@ export { resolveMermaid, isMermaidApi, type MermaidApi } from "./mermaid-resolve
 // Scenario trace: a bar in the shadow root, shown only when a scenario touches the diagram. Initial state
 // comes from the page query (`docdive-scenario`, `docdive-step`), restored paused, and `docdive-select` (an element ID
 // shown in this diagram) reopens its panel (the panel's "Copy link" builds such a URL); invalid values are ignored or
-// clamped. Step changes don't rewrite the URL. `docdive-interval` (ms) overrides the play interval.
+// clamped. On a page with several fences, `docdive-diagram` (fence index) names the diagram that owns this state;
+// without it the first diagram that matches owns it and the others start idle. Step changes don't rewrite the URL.
+// `docdive-interval` (ms) overrides the play interval.
 
 type DocMap = Record<string, string>;
 
@@ -77,6 +81,12 @@ text[data-docdive-active] { fill: #e65100 !important; font-weight: bold; }
 
 let renderCount = 0;
 
+// `docdive-diagram`: the fence a link was copied from; null (absent or invalid) means unqualified.
+const qualifier = (q: URLSearchParams): number | null => {
+  const n = Number.parseInt(q.get("docdive-diagram") ?? "", 10);
+  return Number.isFinite(n) ? n : null;
+};
+
 export class DocdiveDiagram extends HTMLElement {
   static observedAttributes = ["source", "index-url", "map-url", "contexts-url", "doc", "n"];
 
@@ -92,6 +102,7 @@ export class DocdiveDiagram extends HTMLElement {
   private scenario = "";
   private step = 0;
   private diagram?: DiagramEntry;
+  private page?: { doc: string; n: number };
   private timer?: ReturnType<typeof setInterval>;
   private traceBar = el("div", { "data-docdive-trace": "" });
   private picker = el("select", { "data-docdive-scenario-picker": "" });
@@ -200,6 +211,7 @@ export class DocdiveDiagram extends HTMLElement {
       this.setAttribute("data-docdive-mermaid", used);
       this.setAttribute("data-docdive-diagram", diagramId);
       this.diagram = diagram;
+      this.page = { doc, n };
       this.initTrace();
       this.restoreSelection();
     } catch (e) {
@@ -246,7 +258,8 @@ export class DocdiveDiagram extends HTMLElement {
     this.picker.replaceChildren(...ids.map((id) => new Option(id, id)));
     const q = new URLSearchParams(location.search);
     const wanted = q.get("docdive-scenario");
-    const restored = wanted !== null && ids.includes(wanted);
+    const owner = wanted === null || !this.page ? undefined : urlStateOwner(index, this.page.doc, qualifier(q), (d) => touchesDiagram(index, wanted, d));
+    const restored = wanted !== null && ids.includes(wanted) && owner === this.page?.n;
     this.scenario = restored ? wanted : (ids[0] as string);
     this.picker.value = this.scenario;
     const n = Number.parseInt(q.get("docdive-step") ?? "", 10);
@@ -296,11 +309,14 @@ export class DocdiveDiagram extends HTMLElement {
     this.renderPanel();
   }
 
-  // `docdive-select` restores a selection from a copied link; ignored unless it is a node of this diagram.
+  // `docdive-select` restores a selection from a copied link, in the one diagram of the page that owns it.
   private restoreSelection(): void {
-    const id = new URLSearchParams(location.search).get("docdive-select");
-    if (!id || !this.index?.elements[id]) return;
-    if (!this.host.querySelector(`[data-docdive-node="${CSS.escape(id)}"]`)) return;
+    const q = new URLSearchParams(location.search);
+    const id = q.get("docdive-select");
+    const { index, page } = this;
+    if (!id || !index?.elements[id] || !page) return;
+    const owner = urlStateOwner(index, page.doc, qualifier(q), (d) => d.nodes.includes(id));
+    if (owner !== page.n || !this.host.querySelector(`[data-docdive-node="${CSS.escape(id)}"]`)) return;
     this.selected = id;
     this.renderPanel();
   }
@@ -361,12 +377,13 @@ export class DocdiveDiagram extends HTMLElement {
     this.panel.append(open);
   }
 
-  // This page's URL restoring the selection and, when active, the trace; other query params are kept.
+  // This page's URL restoring the selection and, when active, the trace, in this diagram; other query params are kept.
   private selectionUrl(id: string): string {
     const u = new URL(location.href);
     u.hash = "";
-    for (const k of ["docdive-select", "docdive-scenario", "docdive-step"]) u.searchParams.delete(k);
+    for (const k of ["docdive-select", "docdive-scenario", "docdive-step", "docdive-diagram"]) u.searchParams.delete(k);
     u.searchParams.set("docdive-select", id);
+    if (this.index && this.page && hasSeveralFences(this.index, this.page.doc)) u.searchParams.set("docdive-diagram", String(this.page.n));
     if (this.scenario && this.step >= 1) {
       u.searchParams.set("docdive-scenario", this.scenario);
       u.searchParams.set("docdive-step", String(this.step));

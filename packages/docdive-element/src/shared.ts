@@ -91,6 +91,23 @@ export function touchesDiagram(index: Index, scenarioId: string, diagram: Diagra
   );
 }
 
+// Fence index of a diagram id (`doc#n`).
+const fenceOf = (diagramId: string): number => Number(diagramId.slice(diagramId.lastIndexOf("#") + 1));
+
+// The fence of `doc` that owns URL state (selection, scenario/step). A `docdive-diagram` qualifier names it, but
+// only when it matches; an unqualified URL (0.3.0 links, deep dives) goes to the first fence that matches.
+export function urlStateOwner(index: Index, doc: string, qualified: number | null, matches: (d: DiagramEntry) => boolean): number | undefined {
+  const fences = index.diagrams
+    .filter((d) => d.id.startsWith(`${doc}#`) && matches(d))
+    .map((d) => fenceOf(d.id))
+    .sort((a, b) => a - b);
+  return qualified === null ? fences[0] : fences.find((n) => n === qualified);
+}
+
+// A page with several fences needs a diagram qualifier on links; a single-fence page keeps its plain URLs.
+export const hasSeveralFences = (index: Index, doc: string): boolean =>
+  index.diagrams.filter((d) => d.id.startsWith(`${doc}#`)).length > 1;
+
 // Mermaid sequence SVG has no per-message ids: each message is a `text.messageText` followed by a
 // `[class^=messageLine]` element, both in source order. Mapping is by DOM order, checked against step labels.
 // Returns an error message when the mapping is unreliable, null otherwise.

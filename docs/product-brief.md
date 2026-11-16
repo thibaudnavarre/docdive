@@ -243,7 +243,7 @@ The schema is versioned and public. Everything downstream (viewer, MCP, third pa
 - **Click-to-context** — copy the context bundle (or a deep link) for pasting into an agent.
 - Breadcrumb for hierarchy; back navigation.
 
-*Status (spike, `docs/trace-context-findings.md`):* the spike element in Docusaurus and MkDocs now has render + ID mapping, info panel, deep dive, scenario trace and click-to-context. A node click selects it and fills the panel. The deep dive is an "Open" link in the panel, which carries scenario + step in the child URL (`docdive-scenario`, `docdive-step`). "Copy context" copies the Markdown bundle, byte-identical to `docdive context <id>`. Not yet built: click-to-source, deep-link copy, breadcrumb/back (the SSG's own navigation stands in).
+*Status (spike, `docs/trace-context-findings.md`):* the spike element in Docusaurus and MkDocs now has render + ID mapping, info panel, deep dive, scenario trace and click-to-context. A node click selects it and fills the panel. The deep dive is an "Open" link in the panel, which carries scenario + step in the child URL (`docdive-scenario`, `docdive-step`). "Copy context" copies the Markdown bundle, byte-identical to `docdive context <id>`. "Copy link" copies a URL that restores the selection and trace. Pages with several fences work: each diagram traces on its own, and URL state applies to one diagram (`docdive-diagram=<fence>` on copied links; an unqualified link goes to the first matching diagram). Not yet built: click-to-source, breadcrumb/back (the SSG's own navigation stands in).
 
 **Integrations**
 - Docusaurus plugin (~40 lines): run `docdive index` at build, inject script + JSON.
@@ -313,7 +313,7 @@ The schema is versioned and public. Everything downstream (viewer, MCP, third pa
 4. **Done — Viewer spike (toy test):** throwaway page (deep dive, scenario trace, info panel) passed the pre-registered toy test; see `docs/viewer-findings.md`.
 4b. **Done — SSG spike (A7):** `<docdive-diagram>` extracted from the viewer and embedded in Docusaurus 3.10.2 and MkDocs Material 9.8.1; passed the pre-registered checklist; see `docs/ssg-findings.md`.
 4c. **Done — trace + click-to-context in the element:** scenario trace (state carried across deep dive in the URL) and "Copy context" in both SSGs; passed the pre-registered checklist; see `docs/trace-context-findings.md`.
-5. **Then** — web component packaging (the element has trace, click-to-context and deep-link copy; click-to-source and multi-fence pages still to add), CLI hardening (e.g. an index output path so builds do not rewrite the corpus). Dogfood (A6) is done; see `docs/dogfood-findings.md`. Open from the spike: message IDs vs positional edge mapping (A3), sequence features not exercised (self-messages, `alt`/`loop`, notes), bundle size.
+5. **Then** — web component packaging (the element has trace, click-to-context, deep-link copy and multi-fence pages; click-to-source still to add), CLI hardening (e.g. an index output path so builds do not rewrite the corpus). Dogfood (A6) is done; see `docs/dogfood-findings.md`. Open from the spike: message IDs vs positional edge mapping (A3), sequence features not exercised (self-messages, `alt`/`loop`, notes), bundle size.
 
 ---
 

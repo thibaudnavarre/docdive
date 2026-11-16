@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ROOT, toyIndex } from "./helpers.js";
+import { ROOT, fenceCount, toyIndex } from "./helpers.js";
 
 // One test per item of the frozen checklist in docs/ssg-findings.md (S1-S7), per SSG.
 // Expected values come from `docdive index fixtures/toy`.
@@ -137,13 +137,13 @@ for (const site of SITES) {
         await page.goto(`${site.plainOrigin}${map[doc]}`);
         await expect(page.locator("docdive-diagram")).toHaveCount(0);
         if (site.name === "docusaurus") {
-          await expect(page.locator(".docusaurus-mermaid-container svg")).toHaveCount(1);
+          await expect(page.locator(".docusaurus-mermaid-container svg")).toHaveCount(fenceCount(doc));
         } else {
           // Material's shadow root is closed: judge by the replaced container and its rendered height.
           await expect(page.locator("pre.mermaid")).toHaveCount(0);
           const box = page.locator("div.mermaid");
-          await expect(box).toHaveCount(1);
-          await expect.poll(async () => (await box.boundingBox())?.height ?? 0).toBeGreaterThan(50);
+          await expect(box).toHaveCount(fenceCount(doc));
+          await expect.poll(async () => (await box.first().boundingBox())?.height ?? 0).toBeGreaterThan(50);
         }
       }
       expect(errors).toEqual([]);
@@ -157,6 +157,6 @@ test("S7 no id: build error (docusaurus)", async () => {
   expect(status).toBe("0");
   expect(log).not.toMatch(/\[ERROR\]|duplicate/i);
   const map = await docMap(SITES[0]!.origin);
-  expect(Object.keys(map).sort()).toEqual(["architecture/order-service.md", "architecture/system.md", "architecture/validator.md", "scenarios/checkout.md"]);
-  expect(new Set(Object.values(map)).size).toBe(4);
+  expect(Object.keys(map).sort()).toEqual(["architecture/order-service.md", "architecture/orders-db.md", "architecture/system.md", "architecture/validator.md", "scenarios/checkout.md"]);
+  expect(new Set(Object.values(map)).size).toBe(5);
 });
