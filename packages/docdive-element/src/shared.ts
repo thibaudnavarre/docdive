@@ -176,6 +176,27 @@ export function edgeOccurrence(all: Step[], upTo: number): { a: string; b: strin
   return { a: s.to, b: s.from, k: Math.max(0, count(s.to, s.from, upTo) - 1) };
 }
 
+const MOTION_MS = 200;
+
+// Motion is skipped when the browser lacks Element.animate or the visitor prefers reduced motion.
+export function motionAllowed(
+  node: { animate?: unknown },
+  win: { matchMedia?: (q: string) => { matches: boolean } } = globalThis,
+): boolean {
+  return typeof node.animate === "function" && !win.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+}
+
+// Marks `n` as the active step element: edges and messages (anything with a path length) redraw their stroke,
+// nodes and message labels fade/glow in. The single keyframe animates from that state to the element's styled one.
+function activate(n: Element): void {
+  n.setAttribute("data-docdive-active", "");
+  if (!motionAllowed(n)) return;
+  const geometry = n as Partial<SVGGeometryElement>;
+  const length = typeof geometry.getTotalLength === "function" ? geometry.getTotalLength() : 0;
+  const from = length > 0 ? { strokeDasharray: `${length}`, strokeDashoffset: `${length}` } : { opacity: 0.4, filter: "drop-shadow(0 0 0 transparent)" };
+  n.animate([from], { duration: MOTION_MS, easing: "ease-out" });
+}
+
 // Highlights step `step` (1-based; 0 = none) of a scenario in `host`, and fills `throughHost` with the
 // "passes through" notice. A5 deferred: inside a child diagram only the involved ancestor is named.
 export function applyTrace(
@@ -193,13 +214,17 @@ export function applyTrace(
   const s = all[step - 1];
   if (!scenario || !s) return;
   if (diagram.type === "sequence" && diagram.id.startsWith(`${scenario.doc}#`)) {
-    host.querySelectorAll(`[data-docdive-message="${step}"]`).forEach((n) => n.setAttribute("data-docdive-active", ""));
+    host.querySelectorAll(`[data-docdive-message="${step}"]`).forEach(activate);
   }
   if (diagram.type !== "flowchart") return;
-  for (const id of new Set([s.from, s.to])) host.querySelector(`[data-docdive-node="${id}"]`)?.setAttribute("data-docdive-active", "");
+  for (const id of new Set([s.from, s.to])) {
+    const node = host.querySelector(`[data-docdive-node="${id}"]`);
+    if (node) activate(node);
+  }
   const { a, b, k } = edgeOccurrence(all, step - 1);
   const edges = [...host.querySelectorAll(`[data-docdive-edge^="${a}>${b}#"]`)];
-  (edges[k] ?? edges[edges.length - 1])?.setAttribute("data-docdive-active", "");
+  const edge = edges[k] ?? edges[edges.length - 1];
+  if (edge) activate(edge);
   for (const id of ownerChain(index, diagram.id).reverse()) {
     if ((id === s.from || id === s.to) && !diagram.nodes.includes(id)) {
       throughHost.append(el("div", { "data-docdive-through": id }, `Scenario passes through ${id}`));
