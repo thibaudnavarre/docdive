@@ -30,8 +30,8 @@ commands:
   build [folder] --out <dir> [--src <repoRoot>]     write index.json, contexts.json and the <docdive-diagram> assets
   watch [folder] --out <dir> [--src <repoRoot>]     build, then rebuild index.json and contexts.json on every Markdown change
   init <folder> [--json] [--src <repoRoot>]
-  context <elementId> --folder <folder> [--json]
-  context --all --folder <folder>                   JSON map { elementId: markdown }
+  context <elementId> --folder <folder> [--src <repoRoot>] [--json]
+  context --all --folder <folder> [--src <repoRoot>]   JSON map { elementId: markdown }
   stats [--json] [--root <repo>] [--docs <folder>]
   lint [--json] [--fix] [--root <repo>] [--docs <folder>]   docs default: <root>/docs
 
@@ -232,15 +232,21 @@ function execute(command: string, rest: string[], io: Io): number | Promise<numb
   }
 
   if (command === "context") {
-    const { values, pos } = parse(rest, { all: { type: "boolean" }, json: { type: "boolean" }, folder: { type: "string" } }, 1);
+    const { values, pos } = parse(
+      rest,
+      { all: { type: "boolean" }, json: { type: "boolean" }, folder: { type: "string" }, src: { type: "string" } },
+      1,
+    );
     if (typeof values.folder !== "string") throw new UsageError("context: missing --folder <folder>");
     const root = requireFolder(values.folder);
+    const srcRoot = typeof values.src === "string" ? resolve(values.src) : loadConfig(io.cwd ?? process.cwd()).src;
+    const index = buildModel(root, root, { srcRoot });
     if (values.all) {
-      io.out(JSON.stringify(renderAllContexts(buildModel(root, root), root), null, 2));
+      io.out(JSON.stringify(renderAllContexts(index, root), null, 2));
       return EXIT_OK;
     }
     if (!pos[0]) throw new UsageError("context: missing <elementId> (or --all)");
-    const bundle = buildContext(buildModel(root, root), root, pos[0]);
+    const bundle = buildContext(index, root, pos[0]);
     io.out(values.json ? JSON.stringify(sortKeys(bundle), null, 2) : renderContextMarkdown(bundle));
     return EXIT_OK;
   }

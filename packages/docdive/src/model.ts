@@ -20,6 +20,10 @@ export interface Element {
   confidence: number;
   prose?: Prose;
   srcInferred?: SrcHit[];
+  /** Doc of the nearest ancestor that has one; set only when this element has no doc. */
+  docInherited?: { path: string; from: string };
+  /** Declared `src` of the nearest ancestor that declares any; set only when this element declares none. */
+  srcInherited?: { paths: string[]; from: string };
 }
 
 export interface Diagram {
@@ -281,9 +285,34 @@ export function buildModel(folder: string, base?: string, options: BuildOptions 
   }
   attachProse(globalElements(elements), labels, docs, diagramLines);
   if (options.srcRoot) inferSrc(globalElements(elements), options.srcRoot);
+  attachInherited(elements);
   const index: Index = { version: 1, elements, diagrams, scenarios, diagnostics, stats };
   index.diagnostics.push(...lintEdgeNotInDiagram(index), ...proposeFuzzyIds(globalElements(elements)));
   return index;
+}
+
+function attachInherited(elements: Record<string, Element>): void {
+  const nearest = (start: Element, pick: (e: Element) => boolean): string | null => {
+    const seen = new Set<Element>([start]);
+    for (let id = start.parent; id; ) {
+      const el = elements[id];
+      if (!el || seen.has(el)) return null;
+      if (pick(el)) return id;
+      seen.add(el);
+      id = el.parent;
+    }
+    return null;
+  };
+  for (const el of Object.values(elements)) {
+    if (!el.doc) {
+      const from = nearest(el, (e) => !!e.doc);
+      if (from) el.docInherited = { path: elements[from].doc!, from };
+    }
+    if (!el.src.length) {
+      const from = nearest(el, (e) => e.src.length > 0);
+      if (from) el.srcInherited = { paths: elements[from].src, from };
+    }
+  }
 }
 
 /** A participant is anchored when it names a global element that has a doc or appears in ≥ 2 diagrams. */

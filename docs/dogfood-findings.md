@@ -143,7 +143,7 @@ Reservations recorded with the yes: the paste the loop agent received (T07) had 
 
 Known limits carried into the brief:
 
-- **Thin context for undocumented nodes.** The pasted bundle for `InfoPanel` had no `src`, `doc: (none)`, and a nearest-section snippet cut mid-sentence at about 600 characters. The agent still found the files, but the bundle is thinner than the brief assumed for nodes without their own doc.
+- **Thin context for undocumented nodes (addressed afterwards).** The excerpt now ends at the matching list item or paragraph, and the bundle shows inferred `src` and the nearest ancestor's doc and `src`. The pasted bundle for `InfoPanel` had no `src`, `doc: (none)`, and a nearest-section snippet cut mid-sentence at about 600 characters. The agent still found the files, but the bundle is thinner than the brief assumed for nodes without their own doc.
 - **One change, one agent, one repo**, with a corpus author and a loop agent from the same model family. An existence proof, not a rate.
 - **Not a week of use.** The brief's "one week" dogfood was replaced by one end-to-end change.
 - **D4 untested end to end:** multi-diagram pages rely on the `restoreSelection()` guard, with no dedicated spec.

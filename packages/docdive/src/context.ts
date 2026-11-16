@@ -1,6 +1,7 @@
 import { loadDocs } from "./loader.js";
-import type { Index } from "./model.js";
+import type { Element, Index } from "./model.js";
 import type { Prose } from "./prose.js";
+import type { SrcHit } from "./src.js";
 
 export interface ContextBundle {
   id: string;
@@ -13,6 +14,9 @@ export interface ContextBundle {
   src: string[];
   confidence: number;
   prose?: Prose;
+  srcInferred?: SrcHit[];
+  docInherited?: Element["docInherited"];
+  srcInherited?: Element["srcInherited"];
 }
 
 export function buildContext(index: Index, folder: string, id: string): ContextBundle {
@@ -42,13 +46,22 @@ export function buildContext(index: Index, folder: string, id: string): ContextB
     src: el.src,
     confidence: el.confidence,
     ...(el.prose && { prose: el.prose }),
+    ...(el.srcInferred && { srcInferred: el.srcInferred }),
+    ...(el.docInherited && { docInherited: el.docInherited }),
+    ...(el.srcInherited && { srcInherited: el.srcInherited }),
   };
 }
 
 export function renderContextMarkdown(c: ContextBundle): string {
   const list = (items: string[]) => (items.length ? items.map((i) => `- ${i}`).join("\n") : "- (none)");
+  const doc = c.doc ?? (c.docInherited ? `${c.docInherited.path} (inherited from ${c.docInherited.from})` : "(none)");
+  const source = [
+    ...c.src,
+    ...(c.srcInferred ?? []).map((h) => `${h.path} (inferred, confidence ${h.confidence}, via ${h.via})`),
+    ...(c.srcInherited?.paths ?? []).map((p) => `${p} (inherited from ${c.srcInherited!.from})`),
+  ];
   const parts = [
-    `# Context: ${c.id}\n\n- parent: ${c.parent ?? "(none)"}\n- doc: ${c.doc ?? "(none)"}\n- confidence: ${c.confidence}`,
+    `# Context: ${c.id}\n\n- parent: ${c.parent ?? "(none)"}\n- doc: ${doc}\n- confidence: ${c.confidence}`,
     `## Children\n${list(c.children)}`,
     `## Appears in\n${list(c.appearsIn)}`,
     `## Scenarios\n${
@@ -62,7 +75,7 @@ export function renderContextMarkdown(c: ContextBundle): string {
             .join("\n\n")
         : "- (none)"
     }`,
-    `## Source\n${list(c.src)}`,
+    `## Source\n${list(source)}`,
   ];
   if (c.docBody) parts.push(`## Doc\n${c.docBody}`);
   else if (c.prose) {

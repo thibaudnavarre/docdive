@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Context bundle for elements without their own doc: the nearest-section excerpt is now the matching list item or paragraph (about 400 characters, cut at a word boundary), the bundle lists inferred `src` and the nearest ancestor's doc and declared `src` (`inherited from X`). `docdive context` accepts `--src <repoRoot>` (default: `src` in `docdive.config.json`). `index.json` gains optional `docInherited` and `srcInherited` element fields; `version` stays 1.
 - `<docdive-diagram>`: "Copy link" in the panel copies the page URL with `docdive-select=<id>` (plus `docdive-scenario` / `docdive-step` when a trace is active). Opening it reselects the element and restores the trace paused. An ID not in the diagram is ignored.
 - `docdive.config.json` (`docs`, `src`, `out`): defaults for `index`, `build` and `watch`; the `<folder>` argument and flags win.
 - `<docdive-diagram>` checks the `index.json` `version` and shows a clear error when it is not the one it reads. The schema policy is in `docs/releasing.md`.

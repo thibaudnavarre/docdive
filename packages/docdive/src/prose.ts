@@ -18,6 +18,14 @@ interface Section {
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const plain = (s: string) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
+/** Caps an excerpt at ~400 chars, cutting at a word boundary. */
+function excerptOf(text: string): string {
+  if (text.length <= 400) return text;
+  const cut = text.slice(0, 400);
+  const space = cut.lastIndexOf(" ");
+  return `${space > 0 ? cut.slice(0, space) : cut}…`;
+}
+
 function sectionsOf(doc: Doc): Section[] {
   const lines = doc.body.split("\n");
   const abs = (i: number) => doc.bodyOffset + i + 1;
@@ -43,6 +51,7 @@ function sectionsOf(doc: Doc): Section[] {
       sections.push(current);
       current = { heading: line.replace(/^#+\s+/, "").trim(), startLine: abs(i), endLine: abs(i), paragraphs: [] };
     } else if (!fence && line.trim()) {
+      if (/^\s*([-*+]|\d+[.)])\s+\S/.test(line)) flush();
       (para ??= { line: abs(i), text: [] }).text.push(line.trim());
     } else if (!fence) {
       flush();
@@ -98,7 +107,7 @@ export function attachProse(
               file: doc.path,
               line: para.line,
               heading: section.heading,
-              excerpt: para.text.length > 400 ? `${para.text.slice(0, 400)}…` : para.text,
+              excerpt: excerptOf(para.text),
               confidence,
             },
           };

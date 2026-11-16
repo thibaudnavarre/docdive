@@ -245,6 +245,56 @@ describe("context", () => {
   });
 });
 
+describe("context bundle fallbacks", () => {
+  /** Leaf sits in an undocumented Mid inside Top, which owns the doc and the declared src. */
+  function corpus() {
+    const root = tmp();
+    const folder = join(root, "docs");
+    mkdirSync(folder);
+    mkdirSync(join(root, "src"));
+    writeFileSync(join(root, "src", "leaf.ts"), "export {};\n");
+    writeFileSync(join(folder, "top.md"), "---\nid: Top\nsrc: [lib/top.ts]\n---\nTop doc.\n");
+    writeFileSync(join(folder, "dec.md"), "---\nid: Dec\nparent: Top\nsrc: [lib/dec.ts]\n---\nDec doc.\n");
+    writeFileSync(join(folder, "n.md"), "```mermaid\nflowchart LR\n  subgraph Top\n    subgraph Mid\n      Leaf\n    end\n  end\n```\n");
+    return { root, folder };
+  }
+
+  it("inherits doc and src from the nearest documented ancestor, skipping an undocumented parent", () => {
+    const { folder } = corpus();
+    const md = exec(["context", "Leaf", "--folder", folder]).out;
+    expect(md).toContain("- parent: Mid");
+    expect(md).toContain("- doc: top.md (inherited from Top)");
+    expect(md).toContain("- lib/top.ts (inherited from Top)");
+  });
+
+  it("shows inferred and inherited src together with --src, and exposes them in --json", () => {
+    const { root, folder } = corpus();
+    const md = exec(["context", "Leaf", "--folder", folder, "--src", join(root, "src")]).out;
+    expect(md).toMatch(/- leaf\.ts \(inferred, confidence [\d.]+, via \w+\)/);
+    expect(md).toContain("- lib/top.ts (inherited from Top)");
+    const json = JSON.parse(exec(["context", "Leaf", "--folder", folder, "--src", join(root, "src"), "--json"]).out);
+    expect(json.srcInferred[0].path).toBe("leaf.ts");
+    expect(json.srcInherited).toEqual({ paths: ["lib/top.ts"], from: "Top" });
+    expect(json.docInherited).toEqual({ path: "top.md", from: "Top" });
+  });
+
+  it("defaults --src to the src key of docdive.config.json", () => {
+    const { root, folder } = corpus();
+    writeFileSync(join(root, "docdive.config.json"), '{ "src": "src" }');
+    expect(exec(["context", "Leaf", "--folder", folder], root).out).toContain("leaf.ts (inferred");
+    const all = JSON.parse(exec(["context", "--all", "--folder", folder], root).out) as Record<string, string>;
+    expect(all.Leaf).toContain("leaf.ts (inferred");
+  });
+
+  it("keeps declared doc and src authoritative", () => {
+    const { root, folder } = corpus();
+    const md = exec(["context", "Dec", "--folder", folder, "--src", join(root, "src")]).out;
+    expect(md).toContain("- doc: dec.md\n");
+    expect(md).toContain("- lib/dec.ts\n");
+    expect(md).not.toMatch(/inherited|inferred/);
+  });
+});
+
 describe("package bins", () => {
   it("ddv aliases docdive", () => {
     const { bin } = pkg("../package.json") as { bin: Record<string, string> };

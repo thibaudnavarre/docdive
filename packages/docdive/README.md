@@ -21,6 +21,13 @@ An optional `docdive.config.json` in the folder you run `docdive` from sets defa
 Then `npx docdive build` is enough. The `<folder>` argument, `--src` and `--out` override the file. Paths are relative to
 the file. Unknown keys and non-string values are errors. `index` still prints to stdout unless `--out` is passed.
 
+## Context bundles
+
+`docdive context <id> --folder docs [--src <repoRoot>]` prints what an agent needs about one element. For an element without
+its own doc, the "nearest section" is the matching list item or paragraph (about 400 characters, cut at a word boundary).
+The bundle also lists the inferred `src` (with `--src`, or `src` in `docdive.config.json`) and falls back to the nearest
+ancestor's doc and declared `src`, labeled `inherited from <ancestor>`. Declared `doc` and `src` always win.
+
 Binaries: `docdive` and `ddv`. Run `docdive --help` for every command. Exit codes: `0` ok, `1` errors, `2` usage.
 
 The authoring conventions for coding agents ship in `skill/conventions.md`.

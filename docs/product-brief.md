@@ -319,7 +319,7 @@ The schema is versioned and public. Everything downstream (viewer, MCP, third pa
 - **Tech stack:** indexer/CLI in TypeScript (shares Mermaid's parser ecosystem, natural for the web component) vs Python (natural for MkDocs). Recommendation: TypeScript core + thin Python shim for MkDocs that shells out to the CLI.
 - **Mermaid parsing:** reuse `mermaid`'s own parser (heavy, browser-oriented) vs a lightweight regex/PEG extractor for IDs, edges and participants only. Recommendation: lightweight extractor for the index; full Mermaid only in the browser for rendering.
 - **ID qualification syntax:** `billing/UserService` vs `billing.UserService` — Mermaid node IDs restrict characters; validate which separator survives in all supported diagram types. The A7 spike adds a constraint: Docusaurus rejects a `/` in a doc `id:` (see `docs/ssg-findings.md`), so `/` cannot be used if `id:` doubles as a doc id there.
-- **Where does the context bundle's "nearest Markdown section" end?** Heading-to-heading? Paragraph? Needs a rule agents can predict.
+- **Where does the context bundle's "nearest Markdown section" end?** **Resolved:** the matching list item (with its continuation lines) or, for prose, the matching paragraph, capped at about 400 characters and cut at a word boundary with `…`. When the element has no doc or `src` of its own, the bundle also carries the nearest ancestor's doc path and declared `src` (labeled `inherited from`) and the inferred `src`.
 - **Diagram types in scope for v1:** flowchart/graph, sequenceDiagram, erDiagram, classDiagram, C4 (Mermaid's `C4Context` family)? Recommendation: flowchart + sequence + ER for v1; others follow once the extractor is stable.
 
 ---
