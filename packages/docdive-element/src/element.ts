@@ -122,11 +122,12 @@ button:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid
 :where(svg .labelBox, svg .note) { fill: var(--docdive-bg) !important; stroke: var(--docdive-border) !important; }
 :where(svg [class^="activation"]) { fill: var(--docdive-border) !important; stroke: var(--docdive-edge) !important; }
 [data-docdive-active].node rect, [data-docdive-active].node polygon, [data-docdive-active].node circle, [data-docdive-active].node path {
-  stroke: #e65100 !important; stroke-width: 3px !important;
+  stroke: var(--docdive-accent) !important; stroke-width: 3px !important;
 }
-path[data-docdive-active] { stroke: #e65100 !important; stroke-width: 3px !important; }
-text[data-docdive-active] { fill: #e65100 !important; font-weight: bold; }
-[class^="messageLine"][data-docdive-active] { stroke: #e65100 !important; stroke-width: 3px !important; }
+path[data-docdive-active] { stroke: var(--docdive-accent) !important; stroke-width: 3px !important; }
+text[data-docdive-active] { fill: var(--docdive-accent) !important; font-weight: bold; }
+[class^="messageLine"][data-docdive-active] { stroke: var(--docdive-accent) !important; stroke-width: 3px !important; }
+.node[data-docdive-active], path[data-docdive-active], [class^="messageLine"][data-docdive-active] { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--docdive-accent) 60%, transparent)); }
 `;
 
 let renderCount = 0;
