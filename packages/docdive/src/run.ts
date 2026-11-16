@@ -10,6 +10,7 @@ import { lint } from "./lint.js";
 import { applyFixes } from "./fix.js";
 import { floorStats } from "./floor.js";
 import { loadConfig } from "./config.js";
+import { stampSidecar } from "./sidecar.js";
 import { buildContext, renderAllContexts, renderContextMarkdown } from "./context.js";
 
 export interface Io {
@@ -34,6 +35,7 @@ commands:
   init <folder> [--json | --agent] [--src <repoRoot>]   adoption report, or --agent: a prompt to normalize near-duplicate IDs
   context <elementId> --folder <folder> [--src <repoRoot>] [--json]
   context --all --folder <folder> [--src <repoRoot>]   JSON map { elementId: markdown }
+  model stamp <folder>   record the docs' hashes in <folder>/docdive.model.yaml so lint can flag stale entries
   stats [--json] [--root <repo>] [--docs <folder>]
   lint [--json] [--fix] [--root <repo>] [--docs <folder>]   docs default: <root>/docs
 
@@ -265,6 +267,16 @@ function execute(command: string, rest: string[], io: Io): number | Promise<numb
     const docs = requireFolder(typeof values.docs === "string" ? values.docs : join(root, "docs"));
     const stats = floorStats(docs, root);
     io.out(values.json ? JSON.stringify(sortKeys(stats), null, 2) : JSON.stringify(stats));
+    return EXIT_OK;
+  }
+
+  if (command === "model") {
+    const [sub, ...args] = rest;
+    if (sub !== "stamp") throw new UsageError(`model: unknown subcommand "${sub ?? ""}"`);
+    const { pos } = parse(args, {}, 1);
+    if (!pos[0]) throw new UsageError("model stamp: missing <folder>");
+    const { docs } = stampSidecar(requireFolder(pos[0]));
+    io.out(`stamped ${docs} docs in ${pos[0]}/docdive.model.yaml`);
     return EXIT_OK;
   }
 

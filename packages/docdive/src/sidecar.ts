@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { parse } from "yaml";
+import { parse, parseDocument } from "yaml";
 import { walk } from "./loader.js";
 
 export const SIDECAR_NAME = "docdive.model.yaml";
@@ -100,4 +100,16 @@ export function hashDocs(folder: string): Record<string, string> {
       createHash("sha256").update(readFileSync(file)).digest("hex").slice(0, 12),
     ]),
   );
+}
+
+/** Rewrite only `sources` in the sidecar to match the docs on disk; comments and the rest of the file are kept. */
+export function stampSidecar(folder: string): { file: string; docs: number } {
+  const path = join(folder, SIDECAR_NAME);
+  if (!existsSync(path)) throw new Error(`no ${SIDECAR_NAME} in ${folder}; write it before stamping`);
+  const doc = parseDocument(readFileSync(path, "utf8"));
+  if (doc.errors.length) throw new Error(`${SIDECAR_NAME} is not valid YAML: ${doc.errors[0].message.split("\n")[0]}`);
+  const sources = hashDocs(folder);
+  doc.set("sources", sources);
+  writeFileSync(path, doc.toString());
+  return { file: path, docs: Object.keys(sources).length };
 }
