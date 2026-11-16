@@ -11,6 +11,7 @@ REPOS=(
   "gitlabhq|gitlabhq/gitlabhq|doc|d7b9a6176ab4e279465ba3ee09922cde2b74de47"
   "temporal|temporalio/documentation|docs|882a9dececd9ddcf7d3e18d4934b191c7e82a161"
   "posthog|PostHog/posthog.com|contents|bdf3ff26372578def9794105bc79b61d194f92a1"
+  "cloudflare|cloudflare/cloudflare-docs|src/content/docs|bb8a4aa14e222f5796c6038e64d365a0fcd3cede"
 )
 
 for entry in "${REPOS[@]}"; do

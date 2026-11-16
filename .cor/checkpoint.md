@@ -1,4 +1,4 @@
-plan: .cor/plan_15_release_0_3_0.md
-task: T10
+plan: .cor/plan_17_a8_day0_value.md
+task: T06
 phase: done
-started: 2026-11-16T11:25:00
+started: 2026-11-16T12:55:11
