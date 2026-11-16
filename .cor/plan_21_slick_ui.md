@@ -57,7 +57,7 @@ Give the `<docdive-diagram>` web component an elegant, modern, Linear/Vercel-sty
 - [x] T04: Restyle active highlight with accent tokens + glow, replacing `#e65100`
 - [x] T05: Trace step motion via Web Animations API in the highlight path (`shared.ts:189`): ~200 ms fade/glow on active node, stroke-draw on active edge/message; skipped under `prefers-reduced-motion` or when `Element.animate` is missing
 - [x] T06: Unit tests for `hostTheme` and the motion skip guard in `shared.test.ts` [unit]
-- [ ] T07: Add Material palette toggle (default/slate) to `examples/mkdocs/mkdocs.yml` and `classDef`/`class`/`style` to the second `OrdersDB` diagram in `fixtures/toy/architecture/orders-db.md`
+- [x] T07: Add Material palette toggle (default/slate) to `examples/mkdocs/mkdocs.yml` and `classDef`/`class`/`style` to the second `OrdersDB` diagram in `fixtures/toy/architecture/orders-db.md`
 - [ ] T08: Run `npm run e2e` and `npm run examples:build && npm run e2e:ssg`; keep all green [integration]
 - [ ] T09: Document theming, `--docdive-*` properties and motion in `docs/architecture/docdive-element.md` and the element README
 - [ ] T10: Owner walkthrough on both example sites: light/dark, live toggle, reduced motion, author-styled diagram, Chromium/Firefox/Safari [UAT]

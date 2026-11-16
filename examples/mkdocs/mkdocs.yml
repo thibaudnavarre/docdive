@@ -7,6 +7,15 @@ repo_url: https://github.com/thibaudnavarre/docdive
 edit_uri: edit/main/fixtures/toy/
 theme:
   name: material
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
 markdown_extensions:
   - pymdownx.superfences:
       custom_fences:
