@@ -56,4 +56,4 @@ Make `docusaurus-theme-docdive` work under `docusaurus start` with zero extra co
 - [x] T08: Add an `e2e:dev` npm script and a CI step in `.github/workflows/ci.yml`.
 - [x] T09: Docs: add a dev-mode section to `packages/docusaurus-theme-docdive/README.md` and a `CHANGELOG.md` Unreleased entry.
 - [x] T10: Bump all four packages to 0.2.0: `package.json` versions, inter-package deps (`docdive ^0.2.0`), and the MkDocs `__version__`. Turn the CHANGELOG Unreleased section into `## 0.2.0`.
-- [ ] T11: Publish 0.2.0: run `npm publish --dry-run` for each package. The owner publishes with 2FA in the order `docdive-element` → `docdive` → `docusaurus-theme-docdive`, then `uv publish` for `mkdocs-docdive`. Confirm each package installs from its registry.
+- [x] T11: Publish 0.2.0: run `npm publish --dry-run` for each package. The owner publishes with 2FA in the order `docdive-element` → `docdive` → `docusaurus-theme-docdive`, then `uv publish` for `mkdocs-docdive`. Confirm each package installs from its registry.
