@@ -104,6 +104,16 @@ export function ownerChain(index: Index, diagramId: string): string[] {
   return chain;
 }
 
+// Root-first trail of the element owning `doc`, ending at it. Empty when no or several elements own the doc
+// (ambiguous) or the owner has no ancestor (a one-item trail says nothing). A parent cycle stops at the first repeat.
+export function breadcrumb(index: Index, doc: string): string[] {
+  const owners = Object.entries(index.elements).filter(([, e]) => e.doc === doc);
+  if (owners.length !== 1) return [];
+  const trail: string[] = [];
+  for (let id: string | null | undefined = owners[0]?.[0]; id && !trail.includes(id); id = index.elements[id]?.parent) trail.unshift(id);
+  return trail.length > 1 ? trail : [];
+}
+
 // A scenario touches a diagram when a step's from/to is drawn in it, or is its doc owner or an ancestor
 // (so the trace stays visible on a child page reached by deep dive).
 export function touchesDiagram(index: Index, scenarioId: string, diagram: DiagramEntry): boolean {
