@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { breadcrumb, edgeOccurrence, hasSeveralFences, hostTheme, motionAllowed, sourceHref, touchesDiagram, urlStateOwner, withTrace, type DiagramEntry, type Index, type Step } from "./shared.js";
+import { breadcrumb, drawsElement, edgeOccurrence, hasSeveralFences, hostTheme, motionAllowed, panelFields, sourceHref, touchesDiagram, urlStateOwner, withTrace, type DiagramEntry, type Index, type Step } from "./shared.js";
 
 const fwd = (from: string, to: string): Step => ({ from, to, label: "", isReturn: false });
 const ret = (from: string, to: string): Step => ({ from, to, label: "", isReturn: true });
@@ -174,5 +174,20 @@ describe("motionAllowed", () => {
   it("skips motion under prefers-reduced-motion or without Element.animate", () => {
     expect(motionAllowed(animatable, media(true))).toBe(false);
     expect(motionAllowed({}, media(false))).toBe(false);
+  });
+});
+
+describe("alias nodes", () => {
+  const diagram: DiagramEntry = { id: "f.md#0", type: "sequence", nodes: ["UI", "Api"], edges: [], nodeElement: { UI: "Web" } };
+
+  it("draws an element through its alias node and not through the alias name", () => {
+    expect(drawsElement(diagram, "Web")).toBe(true);
+    expect(drawsElement(diagram, "Api")).toBe(true);
+    expect(drawsElement(diagram, "UI")).toBe(false);
+  });
+
+  it("lists description and aliases first in the panel", () => {
+    const index: Index = { diagrams: [], scenarios: {}, elements: { Web: { doc: null, description: "front", aliases: ["UI"] } } };
+    expect(panelFields(index, "Web").slice(0, 2)).toEqual([["description", ["front"]], ["aliases", ["UI"]]]);
   });
 });
