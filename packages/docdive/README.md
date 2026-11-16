@@ -38,6 +38,6 @@ ancestor's doc and declared `src`, labeled `inherited from <ancestor>`. Declared
 
 Binaries: `docdive` and `ddv`. Run `docdive --help` for every command. Exit codes: `0` ok, `1` errors, `2` usage.
 
-The authoring conventions for coding agents ship in `skill/conventions.md`.
+The authoring conventions for coding agents ship in `skill/conventions.md`. For docs that do not follow them, `skill/SKILL.md` has an agent write a committed `docdive.model.yaml` (aliases, hierarchy, descriptions, `src`, entities); `docdive model stamp <folder>` records the doc hashes so `docdive lint` can flag a stale model.
 
 Requires Node >= 22.12. MIT.

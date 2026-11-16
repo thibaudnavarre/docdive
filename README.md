@@ -33,7 +33,7 @@ flowchart LR
 
 A file with `id` and `parent: system` in its frontmatter is a deeper zoom of that element, `src:` lists the code that
 implements it, and a `sequenceDiagram` file with `kind: scenario` is a scenario whose participants are element IDs.
-The full rules, written for agents, are in [`packages/docdive/skill/conventions.md`](packages/docdive/skill/conventions.md).
+The full rules, written for agents, are in [`packages/docdive/skill/conventions.md`](packages/docdive/skill/conventions.md). Docs that do not follow them can still be modelled: [`packages/docdive/skill/SKILL.md`](packages/docdive/skill/SKILL.md) has your coding agent write a committed `docdive.model.yaml` next to them.
 
 ## Quick start
 
