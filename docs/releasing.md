@@ -39,7 +39,7 @@ tmp=$(mktemp -d)
 
 ```sh
 cd "$tmp" && npx --yes "docdive@$v" --version   # prints $v
-cp -R "$repo/fixtures/toy" toy && cd toy && npx --yes "docdive@$v" build
+cp -R "$repo/fixtures/toy" toy && cd toy && npx --yes "docdive@$v" build . --out out
 ```
 
 **mkdocs-docdive** on a copy of the MkDocs example, without the editable source and the workspace CLI command:
@@ -48,7 +48,7 @@ cp -R "$repo/fixtures/toy" toy && cd toy && npx --yes "docdive@$v" build
 mkdir -p "$tmp/examples" "$tmp/fixtures/toy" && cp -R "$repo/fixtures/toy/." "$tmp/fixtures/toy/"
 cp -R "$repo/examples/mkdocs" "$tmp/examples/mkdocs" && cd "$tmp/examples/mkdocs"
 rm -rf site site-plain uv.lock
-sed -i.bak -e '/^# Run the workspace CLI/d' -e '/command: node/d' -e 's/- docdive:/- docdive/' mkdocs.yml
+sed -i.bak -e '/Run the workspace CLI/d' -e '/command: node/d' -e 's/- docdive:/- docdive/' mkdocs.yml
 python3 -m venv .venv && . .venv/bin/activate
 pip install mkdocs-material==9.8.1 "mkdocs-docdive==$v" && mkdocs build
 ```

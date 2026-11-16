@@ -54,8 +54,8 @@ Cut docdive 0.3.0: ship the six `Unreleased` CHANGELOG entries through the exist
 - [x] T03: `CHANGELOG.md`: rename `## Unreleased` to `## 0.3.0 - 2026-11-16`
 - [x] T04: `docs/releasing.md`: add step "create the GitHub Release with `gh release create v<version>` using the CHANGELOG section as body" and the three post-publish smoke steps (npx CLI on `fixtures/toy`; temp venv + `mkdocs build` on a copy of `examples/mkdocs` without the editable `tool.uv.sources`; copy of `examples/docusaurus` pinned to the registry version)
 - [x] T05: Run the checks, commit, push `main`, wait for CI green on the pushed commits
-- [ ] T06: `git tag v0.3.0 && git push origin v0.3.0`; watch `release.yml` to success (on a partial publish, re-run the failed job per T01)
-- [ ] T07: Smoke npm CLI: in a temp dir, `npx docdive@0.3.0 --version` and `docdive build` on `fixtures/toy` [UAT]
-- [ ] T08: Smoke PyPI: temp venv, `pip install mkdocs-docdive==0.3.0`, `mkdocs build` on a copy of `examples/mkdocs` with the editable source entry removed [UAT]
-- [ ] T09: Smoke Docusaurus: copy `examples/docusaurus` to a temp dir, set `docusaurus-theme-docdive` to `0.3.0`, `npm install` from the registry, `npm run build` [UAT]
-- [ ] T10: GitHub Releases: `gh release create v0.2.0` (backfill) and `v0.3.0`, bodies = the matching CHANGELOG sections verbatim
+- [x] T06: `git tag v0.3.0 && git push origin v0.3.0`; watch `release.yml` to success (on a partial publish, re-run the failed job per T01)
+- [x] T07: Smoke npm CLI: in a temp dir, `npx docdive@0.3.0 --version` and `docdive build` on `fixtures/toy` [UAT]
+- [x] T08: Smoke PyPI: temp venv, `pip install mkdocs-docdive==0.3.0`, `mkdocs build` on a copy of `examples/mkdocs` with the editable source entry removed [UAT]
+- [x] T09: Smoke Docusaurus: copy `examples/docusaurus` to a temp dir, set `docusaurus-theme-docdive` to `0.3.0`, `npm install` from the registry, `npm run build` [UAT]
+- [x] T10: GitHub Releases: `gh release create v0.2.0` (backfill) and `v0.3.0`, bodies = the matching CHANGELOG sections verbatim
