@@ -97,6 +97,14 @@ describe("sidecar lint", () => {
     expect(errors(withSidecar(yaml))).toContain(rule);
   });
 
+  it("does not flag a sequence participant that is a sidecar alias of a documented element", () => {
+    const root = withSidecar("elements:\n  Operator: { aliases: [Operateur] }\n", {
+      "docs/a.md": `---\nid: Operator\n---\n${fence("flowchart LR\n  Operator --> Api")}`,
+      "docs/flow.md": fence("sequenceDiagram\n  Operateur->>Api: go"),
+    });
+    expect(errors(root)).not.toContain("unresolved-participant");
+  });
+
   it("is clean for a valid, stamped sidecar", () => {
     const root = withSidecar("elements:\n  Web: { aliases: [UI], parent: Api }\n  Worker: { aliases: [Workers] }\n  Order: { kind: entity, parent: Api }\n");
     stampSidecar(folder(root));

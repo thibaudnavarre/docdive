@@ -41,7 +41,7 @@ export function lintUnresolvedParticipants(index: Index): Diagnostic[] {
     if (d.type !== "sequence") continue;
     const file = d.id.replace(/#\d+$/, "");
     for (const p of d.nodes) {
-      if (seen.has(`${file}|${p}`) || resolveParticipant(index, p)) continue;
+      if (seen.has(`${file}|${p}`) || resolveParticipant(index, d.nodeElement?.[p] ?? p)) continue;
       const q = targets.find((t) => t !== p && sameThing(p, t));
       if (!q) continue;
       seen.add(`${file}|${p}`);

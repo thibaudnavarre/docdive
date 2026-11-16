@@ -12,7 +12,7 @@ Read the docs, write one file, `<docs>/docdive.model.yaml`. Never edit the docs 
 Copy and tick:
 
 ```
-- [ ] 1. docdive index <docs> --out /tmp/ddv     (read /tmp/ddv/index.json)
+- [ ] 1. docdive index <docs> --out /tmp/ddv [--src <repo>]   (read /tmp/ddv/index.json)
 - [ ] 2. Read the docs and the code they describe
 - [ ] 3. Write or update <docs>/docdive.model.yaml
 - [ ] 4. docdive model stamp <docs>
@@ -20,7 +20,7 @@ Copy and tick:
 - [ ] 6. Fix every error, re-run 4 and 5 until "0 errors"
 ```
 
-Step 1 shows what docdive already found: `elements` (`appearsIn`, `parent`, `parentCandidates`), `diagrams[].nodes`, and `diagnostics` (`fuzzy-id-candidate` pairs are strong alias hints). Sidecar problems and an existing sidecar are merged in, so re-running after edits shows the effect.
+Step 1 shows what docdive already found: `elements` (an object keyed by element ID, with `appearsIn`, `parent`, `parentCandidates`), `diagrams[].nodes`, and `diagnostics` (`fuzzy-id-candidate` pairs are strong alias hints). Sidecar problems and an existing sidecar are merged in, so re-running after edits shows the effect.
 
 On a refresh, lint warnings `sidecar-stale-sources` and `sidecar-orphan-element` name what to revisit. Touch only those entries, keep the rest.
 
@@ -45,16 +45,17 @@ All keys are optional per element. Keep YAML flat and minimal; no anchors.
 
 ## What to decide, and how
 
-- **Aliases.** Merge node IDs only when they are the same thing in the code or in the prose (`Web`/`UI`, `Worker`/`Workers`, `Operateur`/`Operator`). Pick as canonical the ID that is most used across diagrams or that matches the code name. Every alias must be a node or participant ID that really appears in a diagram, spelled exactly. Never merge two things just because the names look alike.
+- **Aliases.** Merge node IDs only when they are the same thing in the code or in the prose (`Web`/`UI`, `Worker`/`Workers`, `Operateur`/`Operator`). Pick as canonical the ID that is most used across diagrams or that matches the code name. Every alias must be a flowchart node or sequence participant ID that really appears in a diagram, spelled exactly; entity names from `erDiagram` or `classDiagram` are not nodes, so they take no aliases. Never merge two things just because the names look alike (`Worker` the consumer vs `Workers` a generic box): read what each diagram says first. The same external system drawn as `ADIin` and `ADIout` is one element. A `subgraph` ID is an element too, and may take aliases.
 - **Hierarchy.** `parent` states containment: the component inside its system, the module inside its service. Use the doc structure (a page about X that draws Y), `subgraph` nesting and the code layout as evidence. No cycles, no parent that appears nowhere. Leave `parent` out when unsure.
 - **Descriptions.** One sentence taken from the docs' prose. Say what it does, not what it is called. Do not invent behavior the docs do not state.
 - **`src`.** Only paths that exist, relative to the repo root, found by looking at the code. A directory beats a guessed file. Omit when you cannot find the code.
-- **Entities.** Declare data entities from `erDiagram` and `classDiagram` blocks as `kind: entity` with the owning element as `parent`. They show up in `docdive context`, not as clickable diagram nodes.
+- **Entities.** Declare data entities from `erDiagram` and `classDiagram` blocks as `kind: entity` with the owning element as `parent`. They show up in `docdive context`, not as clickable diagram nodes. A concept drawn both as a class and as a table is two entities unless the docs say otherwise; name the link in both descriptions.
+- **Inferred parents.** `subgraph` nesting already sets a parent. An explicit `parent` in the sidecar overrides it; the sidecar cannot remove one.
 - **Existing frontmatter wins.** If a doc already declares `id`, `parent` or `src`, do not repeat it in the sidecar.
 
 ## Lint feedback
 
-`docdive lint` prints `error <rule> <file>: <message>`; sidecar rules are:
+`docdive lint` prints `error <rule> <file>: <message>` and, for the sidecar, its warnings. Use `lint --json` to see every warning, including the `duplicate-id-different-labels` and `fuzzy-id-candidate` hints that come from the docs (they are not sidecar errors; merge with an alias when both IDs are one thing). Sidecar rules are:
 
 | Rule | Fix |
 | --- | --- |
@@ -64,8 +65,11 @@ All keys are optional per element. Keep YAML flat and minimal; no anchors.
 | `sidecar-unknown-parent` | `parent` names nothing documented or drawn: fix it or drop it. |
 | `sidecar-parent-cycle` | The parent chain loops: cut one link. |
 | `sidecar-missing-src` | The path does not exist: fix or drop it. |
+| `unresolved-participant` | A sequence participant that looks like a documented ID: alias it to that element. |
 
 Warnings: `sidecar-stale-sources` (docs changed since the last stamp: review what they say, update affected entries, re-stamp) and `sidecar-orphan-element` (nothing draws it any more: delete or fix the entry).
+
+`model stamp` rewrites `sources` and re-serializes the YAML (comments stay, flow lists and long strings may be reformatted), so edit the file before stamping, not after.
 
 ## Limits
 
