@@ -54,6 +54,6 @@ Add a breadcrumb to `<docdive-diagram>`: `system › OrderService › Validator`
 - [x] T02: Extract trace carry from `openUrl` into shared `withTrace(url, scenario, step)` and use it in `openUrl` (no behavior change)
 - [x] T03: Render the breadcrumb in `<docdive-diagram>` above the trace bar: `nav`/`ol`, `data-docdive-crumb` per crumb, links (via `withTrace` + `docdive-navigate`) for ancestors with a mapped URL, plain text otherwise, last crumb `aria-current="page"`; refresh hrefs on trace step change; nothing when the chain is empty
 - [x] T04: Unit tests for `breadcrumb` and `withTrace` in `shared.test.ts` [unit]
-- [ ] T05: Add `e2e/breadcrumb.pw.ts` (Docusaurus + MkDocs) and register it in `playwright.ssg.config.ts` [integration]
+- [x] T05: Add `e2e/breadcrumb.pw.ts` (Docusaurus + MkDocs) and register it in `playwright.ssg.config.ts` [integration]
 - [ ] T06: Update `docs/architecture/docdive-element.md` (hooks, behavior), the element README if it lists hooks, and product brief §6.1 status + §10 item 5
 - [ ] T07: Owner walkthrough of the breadcrumb on both example sites [UAT]

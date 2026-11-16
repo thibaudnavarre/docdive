@@ -10,7 +10,7 @@ const site = (dir: string, port: number, probe: string) => ({
 
 export default defineConfig({
   testDir: "e2e",
-  testMatch: ["ssg.pw.ts", "multi-diagram.pw.ts", "trace-context.pw.ts", "host-mermaid.pw.ts", "click-to-source.pw.ts"],
+  testMatch: ["ssg.pw.ts", "multi-diagram.pw.ts", "trace-context.pw.ts", "host-mermaid.pw.ts", "click-to-source.pw.ts", "breadcrumb.pw.ts"],
   workers: 1,
   webServer: [
     site("examples/docusaurus/build", 4201, "docdive/index.json"),
