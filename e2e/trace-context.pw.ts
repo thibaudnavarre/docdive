@@ -181,6 +181,35 @@ for (const site of SITES) {
       });
     }
 
+    test(`T10 copy link restores selection and trace (${site.name})`, async ({ page, context }) => {
+      await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: site.origin });
+      const copyLink = async () => {
+        await page.click(q("[data-docdive-copy-link]"));
+        await expect(page.locator(q("[data-docdive-copy-link-status]"))).toHaveText("ok");
+        return page.evaluate(() => navigator.clipboard.readText());
+      };
+      await open(page, "architecture/system.md");
+      await page.click(q('[data-docdive-node="OrderService"]'));
+      expect(await copyLink()).toBe(url("architecture/system.md", "?docdive-select=OrderService"));
+
+      await page.click(q("[data-docdive-next]"));
+      await page.click(q("[data-docdive-next]"));
+      const link = await copyLink();
+      expect(link).toBe(url("architecture/system.md", `?docdive-select=OrderService&docdive-scenario=${SCENARIO}&docdive-step=2`));
+
+      await page.goto(link);
+      await page.waitForSelector(q("[data-docdive-node]"));
+      await expect(page.locator(q("[data-docdive-title]"))).toHaveText("OrderService");
+      await expect(page.locator(q("[data-docdive-scenario-picker]"))).toHaveValue(SCENARIO);
+      await expectPaused(page, "2");
+
+      // An unknown selection is ignored.
+      const errors = watchErrors(page);
+      await open(page, "architecture/system.md", "?docdive-select=nope");
+      await expect(page.locator(q("[data-docdive-title]"))).toHaveCount(0);
+      expect(errors).toEqual([]);
+    });
+
     // Same observation as A7 S6 (as amended in docs/ssg-findings.md).
     test(`T9 deletability (${site.name})`, async ({ page }) => {
       const errors = watchErrors(page);

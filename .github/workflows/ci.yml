@@ -29,6 +29,8 @@ jobs:
       - run: npm ci
 
       - run: npm run build
+      # Keeps docdive's own architecture docs valid (the A6 dogfood corpus) without building the site.
+      - run: npm run docdive -- lint --root . --docs docs/architecture
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test

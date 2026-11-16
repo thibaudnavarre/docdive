@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `<docdive-diagram>`: "Copy link" in the panel copies the page URL with `docdive-select=<id>` (plus `docdive-scenario` / `docdive-step` when a trace is active). Opening it reselects the element and restores the trace paused. An ID not in the diagram is ignored.
 - `docdive.config.json` (`docs`, `src`, `out`): defaults for `index`, `build` and `watch`; the `<folder>` argument and flags win.
 - `<docdive-diagram>` checks the `index.json` `version` and shows a clear error when it is not the one it reads. The schema policy is in `docs/releasing.md`.
 - Releases are published from CI on a `v*` tag with npm and PyPI trusted publishing (no tokens, no 2FA prompt).

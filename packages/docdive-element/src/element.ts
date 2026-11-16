@@ -26,7 +26,8 @@ export { resolveMermaid, isMermaidApi, type MermaidApi } from "./mermaid-resolve
 //               <docdive-diagram> elements on the page)
 //
 // Scenario trace: a bar in the shadow root, shown only when a scenario touches the diagram. Initial state
-// comes from the page query (`docdive-scenario`, `docdive-step`), restored paused; invalid values are ignored or
+// comes from the page query (`docdive-scenario`, `docdive-step`), restored paused, and `docdive-select` (an element ID
+// shown in this diagram) reopens its panel (the panel's "Copy link" builds such a URL); invalid values are ignored or
 // clamped. Step changes don't rewrite the URL. `docdive-interval` (ms) overrides the play interval.
 
 type DocMap = Record<string, string>;
@@ -200,6 +201,7 @@ export class DocdiveDiagram extends HTMLElement {
       this.setAttribute("data-docdive-diagram", diagramId);
       this.diagram = diagram;
       this.initTrace();
+      this.restoreSelection();
     } catch (e) {
       this.fail(`docdive: ${String(e)}`);
     }
@@ -294,6 +296,15 @@ export class DocdiveDiagram extends HTMLElement {
     this.renderPanel();
   }
 
+  // `docdive-select` restores a selection from a copied link; ignored unless it is a node of this diagram.
+  private restoreSelection(): void {
+    const id = new URLSearchParams(location.search).get("docdive-select");
+    if (!id || !this.index?.elements[id]) return;
+    if (!this.host.querySelector(`[data-docdive-node="${CSS.escape(id)}"]`)) return;
+    this.selected = id;
+    this.renderPanel();
+  }
+
   private renderPanel(): void {
     const id = this.selected;
     if (!id || !this.index) return;
@@ -321,8 +332,19 @@ export class DocdiveDiagram extends HTMLElement {
         shown(e);
       }
     });
+    const link = el("button", { "data-docdive-copy-link": "" }, "Copy link");
+    const linkStatus = el("span", { "data-docdive-copy-link-status": "" });
+    link.addEventListener("click", () => {
+      const shown = (e: unknown) => (linkStatus.textContent = e instanceof Error ? e.name : String(e));
+      linkStatus.textContent = "pending";
+      try {
+        navigator.clipboard.writeText(this.selectionUrl(id)).then(() => (linkStatus.textContent = "ok"), shown);
+      } catch (e) {
+        shown(e);
+      }
+    });
     const row = el("div");
-    row.append(copy, " ", status);
+    row.append(copy, " ", status, " ", link, " ", linkStatus);
     this.panel.append(row);
     const url = this.openUrl(id);
     if (!url) return;
@@ -337,6 +359,19 @@ export class DocdiveDiagram extends HTMLElement {
       if (!this.dispatchEvent(nav)) e.preventDefault();
     });
     this.panel.append(open);
+  }
+
+  // This page's URL restoring the selection and, when active, the trace; other query params are kept.
+  private selectionUrl(id: string): string {
+    const u = new URL(location.href);
+    u.hash = "";
+    for (const k of ["docdive-select", "docdive-scenario", "docdive-step"]) u.searchParams.delete(k);
+    u.searchParams.set("docdive-select", id);
+    if (this.scenario && this.step >= 1) {
+      u.searchParams.set("docdive-scenario", this.scenario);
+      u.searchParams.set("docdive-step", String(this.step));
+    }
+    return u.href;
   }
 
   // Child doc URL, carrying the trace (scenario + step) when one is active.
