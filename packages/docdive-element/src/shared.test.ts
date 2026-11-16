@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { edgeOccurrence, hasSeveralFences, sourceHref, touchesDiagram, urlStateOwner, type DiagramEntry, type Index, type Step } from "./shared.js";
+import { breadcrumb, edgeOccurrence, hasSeveralFences, sourceHref, touchesDiagram, urlStateOwner, withTrace, type DiagramEntry, type Index, type Step } from "./shared.js";
 
 const fwd = (from: string, to: string): Step => ({ from, to, label: "", isReturn: false });
 const ret = (from: string, to: string): Step => ({ from, to, label: "", isReturn: true });
@@ -101,5 +101,42 @@ describe("sourceHref", () => {
   it("returns null without any input", () => {
     expect(sourceHref(undefined, undefined, "a.md", 1)).toBeNull();
     expect(sourceHref("not a url", undefined, "a.md", 1)).toBeNull();
+  });
+});
+
+describe("breadcrumb", () => {
+  const index = (elements: Index["elements"]): Index => ({ diagrams: [], elements, scenarios: {} });
+  const chain = index({
+    system: { doc: "system.md", parent: null },
+    Orders: { doc: "orders.md", parent: "system" },
+    Validator: { doc: "validator.md", parent: "Orders" },
+  });
+
+  it("lists the owner's ancestors root-first, ending at the owner", () => {
+    expect(breadcrumb(chain, "validator.md")).toEqual(["system", "Orders", "Validator"]);
+  });
+
+  it("is empty for a top-level owner, an unowned doc and a doc owned by several elements", () => {
+    expect(breadcrumb(chain, "system.md")).toEqual([]);
+    expect(breadcrumb(chain, "nobody.md")).toEqual([]);
+    const shared = index({ A: { doc: "x.md", parent: "R" }, B: { doc: "x.md", parent: "R" }, R: { doc: "r.md" } });
+    expect(breadcrumb(shared, "x.md")).toEqual([]);
+  });
+
+  it("stops at the first repeated ID on a parent cycle", () => {
+    const loop = index({ A: { doc: "a.md", parent: "B" }, B: { doc: "b.md", parent: "A" } });
+    expect(breadcrumb(loop, "a.md")).toEqual(["B", "A"]);
+  });
+});
+
+describe("withTrace", () => {
+  it("appends scenario and step with the right separator", () => {
+    expect(withTrace("/a/", "checkout", 2)).toBe("/a/?docdive-scenario=checkout&docdive-step=2");
+    expect(withTrace("/a/?x=1", "checkout", 2)).toBe("/a/?x=1&docdive-scenario=checkout&docdive-step=2");
+  });
+
+  it("leaves the URL alone without an active trace", () => {
+    expect(withTrace("/a/", "", 2)).toBe("/a/");
+    expect(withTrace("/a/", "checkout", 0)).toBe("/a/");
   });
 });
