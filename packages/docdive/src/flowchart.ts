@@ -30,9 +30,13 @@ const SHAPES: [string, string[]][] = [
   ["{", ["}"]],
 ];
 const NESTING: Record<string, string> = { "(": ")", "[": "]", "{": "}" };
-// Arrow with optional inline label: -->, ---, -.->, ==>, ~~~, --x, --o, -- text -->, -->|text|, --> |text|
-const ARROW =
-  /(?:--(?![->])[^\n]*?(?:-{2,}>|-{3,}|--[xo])|==(?![=>])[^\n]*?(?:==>|===)|-\.(?![-.])[^\n]*?\.->?|<?(?:-{2,}|={2,}|-\.+-?|~{3,})[>xo]?|\.-+>)(?:[ \t]*\|[^|]*\|)?\s*/y;
+// Arrow with optional inline label: -->, ---, -.->, ==>, ~~~, --x, ---x, --o, -- text -->, -->|text|, --> |text|,
+// each optionally bidirectional or crossed at the start (<-->, <-. text .->, x--x, o--o); quoted text may span lines
+const TEXT = `(?:"[^"]*"|[^\\n"])*?`;
+const ARROW = new RegExp(
+  `(?:[xo<]?--(?![->])${TEXT}(?:-{2,}[>xo]|-{3,})|[xo<]?==(?![=>])${TEXT}(?:={2,}[>xo]|={3,})|[xo<]?-\\.(?![-.])${TEXT}\\.-[>xo]?|[xo<]?(?:-{2,}|={2,}|-\\.+-?|~{3,})[>xo]?|\\.-+>)(?:[ \\t]*\\|[^|]*\\|)?\\s*`,
+  "y",
+);
 const SKIP =
   /^[ \t]*(?:%%|flowchart\b|graph\b|direction\b|classDef\b|class\b|style\b|linkStyle\b|click\b|accTitle\b|accDescr\b)/;
 

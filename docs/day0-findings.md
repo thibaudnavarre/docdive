@@ -137,7 +137,7 @@ The `appearsIn` list was **incomplete on 2 of the 3 elements**: it missed `clien
 
 - The honest Day-0 claim this supports is narrow: on a rename-impact task, the first-run `appearsIn` list is a **correct-but-incomplete shortcut** that an agent reaches the same answer with, faster. It is not a source of truth, and the brief should not call it one.
 - The agents' own grep was good enough to reach 100 % without help on a 7200-file corpus. The task was likely too easy to separate the arms on correctness; a task that needs cross-diagram structure (`parent`, `scenarios`) rather than a flat list is where a difference could show, and was out of scope here.
-- Follow-up candidate (not part of this test): accept bidirectional/crossed arrows in `flowchart.ts`. It would have closed both bundle gaps in this corpus and 8 of its 10 parse failures.
+- Follow-up candidate (not part of this test): accept bidirectional/crossed arrows in `flowchart.ts`. It would have closed both bundle gaps in this corpus and 8 of its 10 parse failures. **Done after the test:** cloudflare-docs `parse-failed` 10 → 0 (the other 2 were label-then-`---x` arrows), both missed blocks are now in `appearsIn`; gitlabhq, posthog and temporal `index.json` unchanged. Newly parsed blocks also moved `gateway`, `resolver` and `tunnel` to local scope (conflicting labels, the existing rule) and dropped label words that used to parse as nodes (`Encrypted`, `Connection`).
 
 ### Limits (in addition to those stated in advance)
 

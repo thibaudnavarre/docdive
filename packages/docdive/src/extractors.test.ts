@@ -42,6 +42,25 @@ describe("extractFlowchart", () => {
     expect(r.edges).toEqual([["A", "C"], ["B", "C"], ["C", "D"], ["D", "E"]]);
   });
 
+  it.each([
+    "A <--> B",
+    "A <-.-> B",
+    "A <-. text .-> B",
+    'A <-. "quoted" .-> B',
+    "A <-- text --> B",
+    'A<--"multi\nline"-->B',
+    "A <== text ==> B",
+    "A ---x B",
+    "A --text---x B",
+    "A -- text -----x B",
+    "A x--x B",
+    "A o--o B",
+  ])("reads bidirectional and crossed arrow %j as one edge", (line) => {
+    const r = extractFlowchart(`flowchart LR\n  ${line}`);
+    expect(r.nodes).toEqual(["A", "B"]);
+    expect(r.edges).toEqual([["A", "B"]]);
+  });
+
   it("skips accessibility lines and parses @{ label } nodes", () => {
     const r = extractFlowchart('flowchart TD\n  accTitle: T\n  accDescr: d\n  A@{ shape: rect, label: "hi" } --> B');
     expect(r.labels.A).toBe("hi");

@@ -313,7 +313,7 @@ The schema is versioned and public. Everything downstream (viewer, MCP, third pa
 4. **Done — Viewer spike (toy test):** throwaway page (deep dive, scenario trace, info panel) passed the pre-registered toy test; see `docs/viewer-findings.md`.
 4b. **Done — SSG spike (A7):** `<docdive-diagram>` extracted from the viewer and embedded in Docusaurus 3.10.2 and MkDocs Material 9.8.1; passed the pre-registered checklist; see `docs/ssg-findings.md`.
 4c. **Done — trace + click-to-context in the element:** scenario trace (state carried across deep dive in the URL) and "Copy context" in both SSGs; passed the pre-registered checklist; see `docs/trace-context-findings.md`.
-5. **Then** — web component packaging (the element has trace, click-to-context and deep-link copy; click-to-source and multi-fence pages still to add), CLI hardening (e.g. an index output path so builds do not rewrite the corpus). Dogfood (A6) is done; see `docs/dogfood-findings.md`. Open from the spike: message IDs vs positional edge mapping (A3), sequence features not exercised (self-messages, `alt`/`loop`, notes), bundle size. From A8 (`docs/day0-findings.md`): the flowchart extractor rejects bidirectional and crossed arrows (`<-->`, `<-.->`, `---x`), 8 of 10 parse failures on cloudflare-docs and the cause of both bundle gaps in that test.
+5. **Then** — web component packaging (the element has trace, click-to-context and deep-link copy; click-to-source and multi-fence pages still to add), CLI hardening (e.g. an index output path so builds do not rewrite the corpus). Dogfood (A6) is done; see `docs/dogfood-findings.md`. Open from the spike: message IDs vs positional edge mapping (A3), sequence features not exercised (self-messages, `alt`/`loop`, notes), bundle size.
 
 ---
 

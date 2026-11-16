@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Flowchart extractor: reads labelled bidirectional and crossed arrows (`<-- text -->`, `<-. text .->`, `<== text ==>`, `-- text ---x`, `x--x`, `o--o`), including quoted labels that span lines. These blocks used to be `parse-failed`, or worse, parsed the label words as nodes. On cloudflare-docs `parse-failed` drops from 10 to 0; IDs whose labels now conflict across diagrams move to local scope.
+
 ## 0.3.0 - 2026-11-16
 
 - `docdive init <folder> --agent`: prints one prompt for your coding agent to unify near-duplicate element IDs (top 20 edit-distance pairs with their files, a same-concept merge rule, the conventions). `--agent` with `--json` is a usage error.
