@@ -19,7 +19,7 @@ disabled
 
 ## Auto Commit
 
-manual
+auto
 
 ## Plan Storage
 
