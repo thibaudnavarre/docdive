@@ -295,6 +295,49 @@ describe("context bundle fallbacks", () => {
   });
 });
 
+describe("init --agent", () => {
+  function driftDocs(pairs: number): string {
+    const folder = docs();
+    const ids = Array.from({ length: pairs }, (_, i) => {
+      const base = String.fromCharCode(97 + i).repeat(6) + "Node";
+      return [base, base + "s"];
+    });
+    const edges = ids.map(([a, b]) => `  ${a} --> ${b}`).join("\n");
+    writeFileSync(join(folder, "b.md"), `\`\`\`mermaid\nflowchart LR\n${edges}\n\`\`\`\n`);
+    return folder;
+  }
+
+  it("prints a prompt with the conventions, the lint step and the pair locations", () => {
+    const folder = driftDocs(1);
+    const { code, out } = exec(["init", folder, "--agent"]);
+    expect(code).toBe(EXIT_OK);
+    expect(out).toContain(`docdive lint --fix --docs ${folder}`);
+    expect(out).toContain("`aaaaaaNode` / `aaaaaaNodes` (confidence 0.73)");
+    expect(out).toContain("`aaaaaaNode`: b.md");
+    expect(out).toContain("# Architecture docs conventions");
+    expect(out).toContain("## Structure");
+    expect(out).not.toContain("## Lint feedback");
+    expect(out).toContain("merged A -> B");
+    expect(out).not.toContain("omitted");
+  });
+
+  it("caps the list at 20 pairs and counts the rest", () => {
+    const { out } = exec(["init", driftDocs(23), "--agent"]);
+    expect(out.match(/^\d+\. `/gm)).toHaveLength(20);
+    expect(out).toContain("3 more pairs omitted");
+  });
+
+  it("says there is nothing to normalize when no pair exists", () => {
+    expect(exec(["init", docs(), "--agent"])).toMatchObject({ code: EXIT_OK, out: "nothing to normalize" });
+  });
+
+  it("rejects --agent with --json", () => {
+    const { code, err } = exec(["init", docs(), "--agent", "--json"]);
+    expect(code).toBe(EXIT_USAGE);
+    expect(err).toContain("--agent and --json cannot be combined");
+  });
+});
+
 describe("package bins", () => {
   it("ddv aliases docdive", () => {
     const { bin } = pkg("../package.json") as { bin: Record<string, string> };

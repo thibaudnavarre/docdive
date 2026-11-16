@@ -6,7 +6,7 @@ src: [packages/docdive/src/]
 
 # DocdiveCli
 
-The `docdive` / `ddv` binary. `CommandRunner` parses `index`, `build`, `watch`, `init`, `context`, `stats` and `lint`, with defaults from `docdive.config.json`. Exit codes: 0 ok, 1 errors, 2 usage.
+The `docdive` / `ddv` binary. `CommandRunner` parses `index`, `build`, `watch`, `init`, `context`, `stats` and `lint`, with defaults from `docdive.config.json`. `init --agent` prints a prompt that asks an agent to unify near-duplicate element IDs. Exit codes: 0 ok, 1 errors, 2 usage.
 
 ```mermaid
 flowchart TD

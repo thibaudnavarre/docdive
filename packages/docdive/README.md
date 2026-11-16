@@ -21,6 +21,14 @@ An optional `docdive.config.json` in the folder you run `docdive` from sets defa
 Then `npx docdive build` is enough. The `<folder>` argument, `--src` and `--out` override the file. Paths are relative to
 the file. Unknown keys and non-string values are errors. `index` still prints to stdout unless `--out` is passed.
 
+## Normalizing IDs with an agent
+
+`docdive init <folder>` prints an adoption report (`--json` for the raw data). `docdive init <folder> --agent` prints one
+prompt instead, to paste into your coding agent: the top 20 pairs of near-duplicate IDs (edit distance, e.g.
+`Workflow` / `Workflows`) with the files where each appears, the rule "merge only if both name the same concept, report
+each decision", and the conventions. It starts with `docdive lint --fix --docs <folder>`, which already merges the pure
+spelling variants. It prints `nothing to normalize` when there is no pair. `--agent` and `--json` cannot be combined.
+
 ## Context bundles
 
 `docdive context <id> --folder docs [--src <repoRoot>]` prints what an agent needs about one element. For an element without

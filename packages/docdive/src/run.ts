@@ -3,6 +3,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs, type ParseArgsOptionsConfig } from "node:util";
 import { buildModel, type Index } from "./model.js";
+import { loadConventions, renderAgentPrompt } from "./agent-prompt.js";
 import { buildReport, renderReportMarkdown } from "./report.js";
 import { lint } from "./lint.js";
 import { applyFixes } from "./fix.js";
@@ -29,7 +30,7 @@ commands:
   index [folder] [--out <dir>] [--src <repoRoot>]   write <dir>/index.json (stdout when --out is omitted)
   build [folder] --out <dir> [--src <repoRoot>]     write index.json, contexts.json and the <docdive-diagram> assets
   watch [folder] --out <dir> [--src <repoRoot>]     build, then rebuild index.json and contexts.json on every Markdown change
-  init <folder> [--json] [--src <repoRoot>]
+  init <folder> [--json | --agent] [--src <repoRoot>]   adoption report, or --agent: a prompt to normalize near-duplicate IDs
   context <elementId> --folder <folder> [--src <repoRoot>] [--json]
   context --all --folder <folder> [--src <repoRoot>]   JSON map { elementId: markdown }
   stats [--json] [--root <repo>] [--docs <folder>]
@@ -222,10 +223,16 @@ function execute(command: string, rest: string[], io: Io): number | Promise<numb
   if (command === "watch") return watchDocs(rest, io);
 
   if (command === "init") {
-    const { values, pos } = parse(rest, { json: { type: "boolean" }, src: { type: "string" } }, 1);
+    const { values, pos } = parse(rest, { json: { type: "boolean" }, agent: { type: "boolean" }, src: { type: "string" } }, 1);
     if (!pos[0]) throw new UsageError("init: missing <folder>");
+    if (values.agent && values.json) throw new UsageError("init: --agent and --json cannot be combined");
     const root = requireFolder(pos[0]);
     const srcRoot = typeof values.src === "string" ? resolve(values.src) : undefined;
+    if (values.agent) {
+      const index = buildModel(root, root, { srcRoot });
+      io.out(renderAgentPrompt(index, pos[0], loadConventions()) ?? "nothing to normalize");
+      return EXIT_OK;
+    }
     const report = buildReport(buildModel(root, root, { srcRoot }), pos[0], srcRoot !== undefined);
     io.out(values.json ? JSON.stringify(sortKeys(report), null, 2) : renderReportMarkdown(report));
     return EXIT_OK;

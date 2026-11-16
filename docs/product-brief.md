@@ -222,6 +222,8 @@ The schema is versioned and public. Everything downstream (viewer, MCP, third pa
 - `dyd index` — build `index.json` from a docs folder. Deterministic, fast, no network.
 - `dyd lint --json [--fix]` — structured diagnostics with machine-applicable fixes: unresolved participant, duplicate ID across siblings, missing parent, missing `src` path, label/ID near-duplicates.
 - `dyd init [--agent]` — brownfield bootstrap. Prints an **adoption report** headlined by identity-class counts (global / local / placeholder) and the top hub bundles, then scenarios detected, conflicts, and a secondary "% cross-linked" line (vocabulary reuse, not model quality). `--agent` emits a single normalization prompt for the user's agent.
+
+*Status:* `--agent` is built for fuzzy ID pairs only (top 20 `edit-distance` pairs, the `lint --fix` step, the conventions). Parents, local IDs, scenario participants and `src` are not in the prompt yet.
 - `dyd context <elementId>` — emits the **context bundle**: element doc, parent/children, every diagram it appears in, every scenario passing through it, `src` paths. Markdown and JSON output. `dyd context --all` prints every bundle as a JSON map `{ id: markdown }` (what the SSG adapters publish as `contexts.json`).
 - `dyd watch` — re-index on change (live update).
 
@@ -320,6 +322,7 @@ The schema is versioned and public. Everything downstream (viewer, MCP, third pa
 - **Mermaid parsing:** reuse `mermaid`'s own parser (heavy, browser-oriented) vs a lightweight regex/PEG extractor for IDs, edges and participants only. Recommendation: lightweight extractor for the index; full Mermaid only in the browser for rendering.
 - **ID qualification syntax:** `billing/UserService` vs `billing.UserService` — Mermaid node IDs restrict characters; validate which separator survives in all supported diagram types. The A7 spike adds a constraint: Docusaurus rejects a `/` in a doc `id:` (see `docs/ssg-findings.md`), so `/` cannot be used if `id:` doubles as a doc id there.
 - **Where does the context bundle's "nearest Markdown section" end?** **Resolved:** the matching list item (with its continuation lines) or, for prose, the matching paragraph, capped at about 400 characters and cut at a word boundary with `…`. When the element has no doc or `src` of its own, the bundle also carries the nearest ancestor's doc path and declared `src` (labeled `inherited from`) and the inferred `src`.
+- **Ranking of `init --agent` pairs:** top 20 by confidence is dominated by same-file clusters (temporal: 15/20 are `*PRIM` region codes from one file; gitlabhq: 11/20 are `BulkImports::*Worker{A,B,BB}` from `bulk_import.md`). Two IDs that only ever appear in the same diagram are rarely one concept. Candidate: down-rank pairs whose file sets are identical and single; re-measure on the three corpora before changing the signal.
 - **Diagram types in scope for v1:** flowchart/graph, sequenceDiagram, erDiagram, classDiagram, C4 (Mermaid's `C4Context` family)? Recommendation: flowchart + sequence + ER for v1; others follow once the extractor is stable.
 
 ---
