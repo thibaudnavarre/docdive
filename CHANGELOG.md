@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 - 2026-11-16
 
 - `docdive init <folder> --agent`: prints one prompt for your coding agent to unify near-duplicate element IDs (top 20 edit-distance pairs with their files, a same-concept merge rule, the conventions). `--agent` with `--json` is a usage error.
 - Context bundle for elements without their own doc: the nearest-section excerpt is now the matching list item or paragraph (about 400 characters, cut at a word boundary), the bundle lists inferred `src` and the nearest ancestor's doc and declared `src` (`inherited from X`). `docdive context` accepts `--src <repoRoot>` (default: `src` in `docdive.config.json`). `index.json` gains optional `docInherited` and `srcInherited` element fields; `version` stays 1.

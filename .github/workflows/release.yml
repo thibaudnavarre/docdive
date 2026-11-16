@@ -61,10 +61,16 @@ jobs:
       - run: npm run build
 
       # Dependency order: the theme needs docdive, docdive needs the element.
+      # A package already on npm is skipped, so a re-run after a partial publish finishes the rest.
       - run: |
-          npm publish -w docdive-element
-          npm publish -w docdive
-          npm publish -w docusaurus-theme-docdive
+          version="${GITHUB_REF_NAME#v}"
+          for pkg in docdive-element docdive docusaurus-theme-docdive; do
+            if [ "$(npm view "$pkg@$version" version 2>/dev/null)" = "$version" ]; then
+              echo "$pkg@$version already published, skipping"
+            else
+              npm publish -w "$pkg"
+            fi
+          done
 
   publish-pypi:
     needs: verify

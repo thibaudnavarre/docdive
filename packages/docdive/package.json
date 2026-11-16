@@ -1,6 +1,6 @@
 {
   "name": "docdive",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Index Mermaid diagrams in docs into a model, a CLI and agent-ready context.",
   "license": "MIT",
   "author": "Thibaud Navarre",
@@ -27,7 +27,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "docdive-element": "^0.2.0",
+    "docdive-element": "^0.3.0",
     "gray-matter": "^4.0.3"
   }
 }

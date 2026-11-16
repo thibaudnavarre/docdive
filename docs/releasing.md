@@ -10,12 +10,57 @@ OIDC ("trusted publishing").
    (`package.json`, plus the `docdive` and `docdive-element` dependency ranges) and
    `packages/mkdocs-docdive/src/mkdocs_docdive/__init__.py`. Refresh `package-lock.json`.
 2. Turn the CHANGELOG `Unreleased` section into `## <version> - <date>`.
-3. Merge to `main`, then `git tag v<version> && git push origin v<version>`.
+3. Merge to `main`, wait for CI to pass, then `git tag v<version> && git push origin v<version>`.
+4. When `release.yml` succeeds, run the smoke tests below against the published artifacts.
+5. Create the GitHub Release, with the CHANGELOG section as its body:
+
+   ```sh
+   v=<version>
+   gh release create "v$v" --title "$v" --notes "$(awk -v h="## $v " 'index($0, h) == 1 {f = 1; next} /^## / {f = 0} f' CHANGELOG.md)"
+   ```
 
 The workflow first checks that the tag equals all four versions, then runs the build, typecheck, lint and tests.
 npm publishes in dependency order (`docdive-element`, `docdive`, `docusaurus-theme-docdive`) with provenance, and
-PyPI publishes `mkdocs-docdive` in a parallel job. Re-running a failed job after a partial publish fails on the packages
-that already went out; publish the remaining ones from a re-run of the failed job only.
+PyPI publishes `mkdocs-docdive` in a parallel job. The npm step skips a package whose version is already on npm, so after
+a partial publish re-run the failed job and it publishes only the remaining packages.
+
+## Smoke tests
+
+Run these from a temp directory, against the registries, not the workspace. A failure means a fix and a new patch
+release: npm versions cannot be unpublished.
+
+```sh
+v=<version>
+repo=$PWD
+tmp=$(mktemp -d)
+```
+
+**npm CLI** on the toy fixture:
+
+```sh
+cd "$tmp" && npx --yes "docdive@$v" --version   # prints $v
+cp -R "$repo/fixtures/toy" toy && cd toy && npx --yes "docdive@$v" build
+```
+
+**mkdocs-docdive** on a copy of the MkDocs example, without the editable source and the workspace CLI command:
+
+```sh
+mkdir -p "$tmp/examples" "$tmp/fixtures/toy" && cp -R "$repo/fixtures/toy/." "$tmp/fixtures/toy/"
+cp -R "$repo/examples/mkdocs" "$tmp/examples/mkdocs" && cd "$tmp/examples/mkdocs"
+rm -rf site site-plain uv.lock
+sed -i.bak -e '/^# Run the workspace CLI/d' -e '/command: node/d' -e 's/- docdive:/- docdive/' mkdocs.yml
+python3 -m venv .venv && . .venv/bin/activate
+pip install mkdocs-material==9.8.1 "mkdocs-docdive==$v" && mkdocs build
+```
+
+**docusaurus-theme-docdive** on a copy of the Docusaurus example:
+
+```sh
+mkdir -p "$tmp/examples" "$tmp/fixtures/toy" && cp -R "$repo/fixtures/toy/." "$tmp/fixtures/toy/"
+cp -R "$repo/examples/docusaurus" "$tmp/examples/docusaurus" && cd "$tmp/examples/docusaurus"
+rm -rf node_modules build build-plain build-mermaid11 .docusaurus
+npm pkg set "dependencies.docusaurus-theme-docdive=$v" && npm install && npm run build
+```
 
 ## One-time setup
 
