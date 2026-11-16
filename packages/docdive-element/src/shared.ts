@@ -114,6 +114,13 @@ export function breadcrumb(index: Index, doc: string): string[] {
   return trail.length > 1 ? trail : [];
 }
 
+// `url` carrying the active trace (scenario + step); unchanged when none is active.
+export function withTrace(url: string, scenario: string, step: number): string {
+  if (!scenario || step < 1) return url;
+  const q = new URLSearchParams({ "docdive-scenario": scenario, "docdive-step": String(step) });
+  return `${url}${url.includes("?") ? "&" : "?"}${q}`;
+}
+
 // A scenario touches a diagram when a step's from/to is drawn in it, or is its doc owner or an ancestor
 // (so the trace stays visible on a child page reached by deep dive).
 export function touchesDiagram(index: Index, scenarioId: string, diagram: DiagramEntry): boolean {

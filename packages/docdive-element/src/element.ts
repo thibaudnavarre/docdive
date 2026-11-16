@@ -9,6 +9,7 @@ import {
   sourceHref,
   touchesDiagram,
   urlStateOwner,
+  withTrace,
   type DiagramEntry,
   INDEX_VERSION,
   type Index,
@@ -406,9 +407,7 @@ export class DocdiveDiagram extends HTMLElement {
     const childDoc = this.index?.elements[id]?.doc;
     const mapped = childDoc ? this.map[childDoc] : undefined;
     const url = typeof mapped === "string" ? mapped : undefined;
-    if (!url || !this.scenario || this.step < 1) return url;
-    const q = new URLSearchParams({ "docdive-scenario": this.scenario, "docdive-step": String(this.step) });
-    return `${url}${url.includes("?") ? "&" : "?"}${q}`;
+    return url && withTrace(url, this.scenario, this.step);
   }
 }
 
