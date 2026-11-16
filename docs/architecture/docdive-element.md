@@ -29,3 +29,10 @@ flowchart TD
 - `ScenarioTrace`: play/pause/step bar, shown when a scenario touches the diagram; state in the `docdive-scenario` and `docdive-step` query params.
 - `SharedHelpers` (`shared.ts`): index types, panel fields, breadcrumb trail, trace application.
 - Built by esbuild (`scripts/build.mjs`) into `dist/`, which `DocdiveCli` copies at build time.
+
+## Theming and motion
+
+- Colors follow the host: `hostTheme` (`shared.ts`) reads Docusaurus `data-theme` and Material `data-md-color-scheme` (`slate` is dark, any other palette light) on `<html>`/`<body>`; a `MutationObserver` mirrors it live onto `data-docdive-theme` on the element. Without a host scheme the element follows `prefers-color-scheme`.
+- Override the look with CSS custom properties on `docdive-diagram` (or an ancestor): `--docdive-bg`, `--docdive-border`, `--docdive-accent` (focus ring, links, active step), `--docdive-error`, `--docdive-node-fill`, `--docdive-node-stroke`, `--docdive-edge`, `--docdive-radius`, `--docdive-space`, `--docdive-duration` (hover transitions). The host font is inherited by the chrome; diagram text keeps Mermaid's font because Mermaid measures labels with it.
+- Mermaid defaults are restyled by zero-specificity `:where()` rules with `!important` (Mermaid's own `#id` styles would otherwise win). Author `classDef`, `style` and `linkStyle` still take precedence. The host Mermaid instance is never re-initialized.
+- The active trace step fades or glows in (nodes, message labels) or redraws (edges, message lines) over 200 ms with the Web Animations API. It is skipped under `prefers-reduced-motion` or when `Element.animate` is missing.
