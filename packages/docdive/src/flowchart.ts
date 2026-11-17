@@ -1,7 +1,6 @@
 export interface Subgraph {
   id: string;
   label: string;
-  parent: string | null;
   /** Direct members: nodes and nested subgraph ids. */
   members: string[];
 }
@@ -83,7 +82,7 @@ export function extractFlowchart(source: string): FlowchartResult {
   const openSubgraph = (text: string, pos: number) => {
     const titled = /^([^\s[]+)[ \t]*\[\s*"?(.*?)"?\s*\]$/.exec(text);
     const id = titled ? titled[1] : text.replace(/^"(.*)"$/, "$1");
-    const sg: Subgraph = { id, label: titled ? titled[2] : id, parent: stack[stack.length - 1]?.id ?? null, members: [] };
+    const sg: Subgraph = { id, label: titled ? titled[2] : id, members: [] };
     subgraphs.push(sg);
     addNode(id, sg.label, pos, true);
     stack.push(sg);

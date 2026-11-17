@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { loadDocs, type Doc } from "./loader.js";
-import { buildModel, resolveParticipant, type Diagnostic, type Index } from "./model.js";
+import { asStringArray, buildModel, resolveParticipant, type Diagnostic, type Index } from "./model.js";
 import { nearMiss, normalise } from "./fuzzy.js";
 
 export interface LintResult {
@@ -10,11 +10,6 @@ export interface LintResult {
 }
 
 const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
-
-const srcPaths = (doc: Doc): string[] => {
-  const v = doc.frontmatter.src;
-  return Array.isArray(v) ? v.map(String) : typeof v === "string" ? [v] : [];
-};
 
 /** Abbreviation: `OrderSvc` for `OrderService` (same first letter, subsequence, ≥ 60 % of the length). */
 export function isAbbreviation(short: string, long: string): boolean {
@@ -107,7 +102,7 @@ export function lintMissingParents(docs: Doc[]): Diagnostic[] {
 export function lintMissingSrc(docs: Doc[], repoRoot: string): Diagnostic[] {
   const out: Diagnostic[] = [];
   for (const doc of docs) {
-    for (const path of srcPaths(doc)) {
+    for (const path of asStringArray(doc.frontmatter.src)) {
       if (existsSync(join(repoRoot, path))) continue;
       out.push({ rule: "missing-src", file: doc.path, src: path, message: `src path "${path}" does not exist` });
     }
@@ -116,8 +111,8 @@ export function lintMissingSrc(docs: Doc[], repoRoot: string): Diagnostic[] {
 }
 
 export function lint(docsFolder: string, repoRoot: string): LintResult {
-  const docs = loadDocs(docsFolder, docsFolder);
-  const index = buildModel(docsFolder, docsFolder);
+  const docs = loadDocs(docsFolder);
+  const index = buildModel(docs);
   return {
     errors: [
       ...lintUnresolvedParticipants(index),

@@ -2,7 +2,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, watc
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs, type ParseArgsOptionsConfig } from "node:util";
-import { DOC_EXT } from "./loader.js";
+import { DOC_EXT, loadDocs, type Doc } from "./loader.js";
 import { buildModel, type Index } from "./model.js";
 import { lint } from "./lint.js";
 import { renderAllContexts } from "./context.js";
@@ -86,10 +86,10 @@ function writeAtomic(path: string, content: string): void {
   renameSync(tmp, path);
 }
 
-function writeOutputs(index: Index, root: string, dir: string): void {
+function writeOutputs(index: Index, docs: Doc[], dir: string): void {
   mkdirSync(dir, { recursive: true });
   writeAtomic(join(dir, "index.json"), JSON.stringify(sortKeys(index), null, 2) + "\n");
-  writeAtomic(join(dir, "contexts.json"), JSON.stringify(renderAllContexts(index, root), null, 2) + "\n");
+  writeAtomic(join(dir, "contexts.json"), JSON.stringify(renderAllContexts(index, docs), null, 2) + "\n");
 }
 
 function copyAssets(dir: string): void {
@@ -109,8 +109,9 @@ function watchDocs(rest: string[], io: Io): Promise<number> {
   const folder = relative(process.cwd(), root) || ".";
 
   const rebuild = (): Index => {
-    const index = buildModel(root, root);
-    writeOutputs(index, root, dir);
+    const docs = loadDocs(root);
+    const index = buildModel(docs);
+    writeOutputs(index, docs, dir);
     return index;
   };
   const stamp = () => new Date().toLocaleTimeString("en-GB");
@@ -170,8 +171,9 @@ function watchDocs(rest: string[], io: Io): Promise<number> {
 function execute(command: string, rest: string[], io: Io): number | Promise<number> {
   if (command === "build") {
     const { root, out } = target("build", rest);
-    const index = buildModel(root, root);
-    writeOutputs(index, root, out);
+    const docs = loadDocs(root);
+    const index = buildModel(docs);
+    writeOutputs(index, docs, out);
     copyAssets(out);
     io.err(summarise(index));
     return EXIT_OK;

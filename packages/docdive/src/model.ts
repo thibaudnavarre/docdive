@@ -1,4 +1,4 @@
-import { DOC_EXT, loadDocs, type Doc } from "./loader.js";
+import { DOC_EXT, type Doc } from "./loader.js";
 import { extractFlowchart } from "./flowchart.js";
 import { extractSequence, type SequenceStep } from "./sequence.js";
 import { proposeFuzzyIds } from "./fuzzy.js";
@@ -18,8 +18,6 @@ export interface Diagram {
   type: "flowchart" | "sequence";
   nodes: string[];
   edges: [string, string][];
-  /** Node labels that differ from the node ID (flowcharts only). */
-  labels?: Record<string, string>;
   /** Absolute 1-based Markdown line where each node is declared (or first mentioned). */
   lines: Record<string, number>;
 }
@@ -48,7 +46,7 @@ export interface Index {
 const isFlowchart = (type: string) => /^(flowchart|graph)(-elk)?$/.test(type);
 const isSequence = (type: string) => type === "sequenceDiagram";
 
-const asStringArray = (v: unknown): string[] =>
+export const asStringArray = (v: unknown): string[] =>
   Array.isArray(v) ? v.map(String) : typeof v === "string" ? [v] : [];
 
 /** Node IDs of 1–2 characters (`A`, `B1`) are throwaway placeholders: drawn, but never elements. */
@@ -58,8 +56,7 @@ const isPlaceholder = (id: string) => id.length <= 2;
 const docId = (doc: Doc): string | null =>
   doc.frontmatter.kind !== "scenario" && doc.frontmatter.id ? String(doc.frontmatter.id) : null;
 
-export function buildModel(folder: string, base?: string): Index {
-  const docs = loadDocs(folder, base);
+export function buildModel(docs: Doc[]): Index {
   const elements: Record<string, Element> = {};
   const diagrams: Diagram[] = [];
   const scenarios: Record<string, Scenario> = {};
@@ -111,7 +108,7 @@ export function buildModel(folder: string, base?: string): Index {
 
       if (fc) {
         const labels = Object.fromEntries(Object.entries(fc.labels).filter(([k, v]) => v !== k));
-        diagrams.push({ id: diagramId, type: "flowchart", nodes: fc.nodes, edges: fc.edges, labels, lines: absLines(fc.lines) });
+        diagrams.push({ id: diagramId, type: "flowchart", nodes: fc.nodes, edges: fc.edges, lines: absLines(fc.lines) });
         appear(fc.nodes);
         // Inside one diagram the innermost container wins: a subgraph member is not also a child of the doc.
         const grouped = new Set(fc.subgraphs.flatMap((sg) => sg.members));

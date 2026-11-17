@@ -27,9 +27,9 @@ describe("loader", () => {
       "a.mdx": "# A\n\n1. step\n\n   ```mermaid\n   ---\n   title: Hello\n   ---\n   sequenceDiagram\n     X->>Y: hi\n   ```\n",
       "b.md": "```mermaid\nstateDiagram-v2\n  [*] --> S\n```\n",
     });
-    const docs = loadDocs(root, root);
+    const docs = loadDocs(root);
     expect(docs.map((d) => d.path)).toEqual(["a.mdx", "b.md"]);
-    expect(docs[0].blocks[0]).toMatchObject({ type: "sequenceDiagram", title: "Hello", startLine: 9, source: "sequenceDiagram\n  X->>Y: hi" });
+    expect(docs[0].blocks[0]).toMatchObject({ type: "sequenceDiagram", startLine: 9, source: "sequenceDiagram\n  X->>Y: hi" });
   });
 
   it("survives malformed doc frontmatter", () => {
@@ -44,7 +44,7 @@ describe("buildModel", () => {
       "orders.md": "---\nid: Orders\nparent: system\nsrc: [src/orders/]\ndescription: Takes orders.\n---\n" + fc("  Controller --> Repo"),
       "notes.md": fc("  Reports --> Exports"),
     });
-    const { elements } = buildModel(root, root);
+    const { elements } = buildModel(loadDocs(root));
     expect(elements.Orders).toMatchObject({ doc: "orders.md", parent: "system", src: ["src/orders/"], description: "Takes orders." });
     expect(elements.system.children.sort()).toEqual(["Api", "Orders"]);
     expect(elements.Controller.parent).toBe("Orders");
@@ -57,7 +57,7 @@ describe("buildModel", () => {
       "sys.mmd": "flowchart LR\n  Api --> Billing",
       "d.md": ["```mermaid\ngantt\n  title x\n```", "```mermaid\nflowchart LR\n  A --> B !!\n```", fc("  Billing --> Ledger")].join("\n\n"),
     });
-    const index = buildModel(root, root);
+    const index = buildModel(loadDocs(root));
     expect(index.diagrams.map((d) => d.id).sort()).toEqual(["d.md#2", "sys.mmd#0"]);
     expect(index.elements.Billing.appearsIn).toHaveLength(2);
     expect(index.diagnostics.filter((d) => d.rule === "parse-failed")).toHaveLength(1);
@@ -68,7 +68,7 @@ describe("buildModel", () => {
       "a.md": fc("  subgraph Left\n    Shared --> Alpha\n    subgraph Inner\n      Cache\n    end\n  end"),
       "b.md": fc("  subgraph Right\n    Shared --> Beta\n  end"),
     });
-    const { elements } = buildModel(root, root);
+    const { elements } = buildModel(loadDocs(root));
     expect(elements.Left.children).toEqual(["Alpha", "Inner"]);
     expect(elements.Cache.parent).toBe("Inner");
     expect(elements.Shared.parent).toBeNull();
@@ -76,7 +76,7 @@ describe("buildModel", () => {
 
   it("gives a subgraph member to the subgraph, not to the doc that draws it", () => {
     const root = project({ "app.md": "---\nid: App\n---\n" + fc("  subgraph Backend\n    Api --> Db\n  end\n  Web --> Api") });
-    const { elements } = buildModel(root, root);
+    const { elements } = buildModel(loadDocs(root));
     expect(elements.Api.parent).toBe("Backend");
     expect(elements.Backend.parent).toBe("App");
     expect(elements.Web.parent).toBe("App");
@@ -87,14 +87,14 @@ describe("buildModel", () => {
       "system.md": "---\nid: system\n---\n" + fc("  Api --> Orders"),
       "orders.md": "---\nid: Orders\nparent: system\n---\n" + fc("  Api --> Controller"),
     });
-    const { elements } = buildModel(root, root);
+    const { elements } = buildModel(loadDocs(root));
     expect(elements.Api.parent).toBe("system");
     expect(elements.Controller.parent).toBe("Orders");
   });
 
   it("keeps IDs of ≤2 chars out of the elements", () => {
     const root = project({ "a.md": "---\nid: guide\n---\n" + fc("  A --> Gateway") });
-    const { elements } = buildModel(root, root);
+    const { elements } = buildModel(loadDocs(root));
     expect(elements.A).toBeUndefined();
     expect(elements.guide.children).toEqual(["Gateway"]);
   });
@@ -103,7 +103,7 @@ describe("buildModel", () => {
     const root = project({
       "a.md": "# A\n\n```mermaid\n---\ntitle: T\n---\nflowchart LR\n  X --> Y[Why]\n```\n\n```mermaid\nsequenceDiagram\n  participant Z\n  Z->>W: hi\n```\n",
     });
-    expect(buildModel(root, root).diagrams.map((d) => d.lines)).toEqual([{ X: 8, Y: 8 }, { Z: 13, W: 14 }]);
+    expect(buildModel(loadDocs(root)).diagrams.map((d) => d.lines)).toEqual([{ X: 8, Y: 8 }, { Z: 13, W: 14 }]);
   });
 
   it("names scenarios by id, infers the others, and flags scenario steps missing from a flowchart", () => {
@@ -112,7 +112,7 @@ describe("buildModel", () => {
       "ops.md": "---\nid: Ops\n---\n```mermaid\nsequenceDiagram\n  Worker->>Queue: push\n```\n",
       "b.md": fc("  Gateway --> Queue\n  Worker --> Queue"),
     });
-    const index = buildModel(root, root);
+    const index = buildModel(loadDocs(root));
     expect(Object.keys(index.scenarios).sort()).toEqual(["Ops#0", "checkout"]);
     expect(index.scenarios["Ops#0"].inferred).toBe(true);
     expect(resolveParticipant(index, "Gateway")).toBe(true);
@@ -138,7 +138,8 @@ describe("renderAllContexts", () => {
       "system.md": "---\nid: system\n---\n" + fc("  API --> Orders"),
       "orders.md": "---\nid: Orders\nparent: system\n---\nOrders body.\n\n" + fc("  Ctl --> Repo"),
     });
-    const all = renderAllContexts(buildModel(root, root), root);
+    const docs = loadDocs(root);
+    const all = renderAllContexts(buildModel(docs), docs);
     expect(Object.keys(all).sort()).toEqual(["API", "Ctl", "Orders", "Repo", "system"]);
     expect(all.Orders).toContain("Orders body.");
     expect(all.API).not.toContain("## Doc");

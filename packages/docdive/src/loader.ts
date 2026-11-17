@@ -8,16 +8,12 @@ export interface MermaidBlock {
   source: string;
   /** First token of the diagram header, e.g. `flowchart`, `sequenceDiagram`, `stateDiagram-v2`. */
   type: string;
-  /** `title` from Mermaid's in-block `---` frontmatter, when present. */
-  title?: string;
 }
 
 export interface Doc {
   path: string;
   frontmatter: Record<string, unknown>;
   body: string;
-  /** Number of file lines before `body`; body line i (0-based) is file line `bodyOffset + i + 1`. */
-  bodyOffset: number;
   blocks: MermaidBlock[];
 }
 
@@ -50,14 +46,7 @@ function stripBlockFrontmatter(source: string, startLine: number) {
   if (first < 0 || lines[first].trim() !== "---") return { source, startLine };
   const end = lines.findIndex((l, i) => i > first && l.trim() === "---");
   if (end < 0) return { source, startLine };
-  let title: string | undefined;
-  try {
-    const data = matter(lines.slice(first, end + 1).join("\n")).data;
-    if (data.title !== undefined) title = String(data.title);
-  } catch {
-    // malformed block frontmatter: still strip it so the diagram body parses
-  }
-  return { source: lines.slice(end + 1).join("\n"), startLine: startLine + end + 1, title };
+  return { source: lines.slice(end + 1).join("\n"), startLine: startLine + end + 1 };
 }
 
 export function extractBlocks(body: string, lineOffset = 0): MermaidBlock[] {
@@ -75,7 +64,6 @@ export function extractBlocks(body: string, lineOffset = 0): MermaidBlock[] {
         startLine: stripped.startLine,
         source: stripped.source,
         type: diagramType(stripped.source),
-        ...(stripped.title !== undefined && { title: stripped.title }),
       });
       current = null;
     } else if (current) {
@@ -87,10 +75,9 @@ export function extractBlocks(body: string, lineOffset = 0): MermaidBlock[] {
 
 export function parseDoc(path: string, raw: string): Doc {
   if (path.endsWith(".mmd")) {
-    const { source, startLine, title } = stripBlockFrontmatter(raw, 1);
-    const block = { index: 0, startLine, source, type: diagramType(source), ...(title !== undefined && { title }) };
-    // No prose in a bare diagram file: an empty body keeps the diagram source out of "nearest section" text.
-    return { path, frontmatter: {}, body: "", bodyOffset: 0, blocks: [block] };
+    const { source, startLine } = stripBlockFrontmatter(raw, 1);
+    // No prose in a bare diagram file: an empty body keeps the diagram source out of the context bundle.
+    return { path, frontmatter: {}, body: "", blocks: [{ index: 0, startLine, source, type: diagramType(source) }] };
   }
   let parsed: matter.GrayMatterFile<string>;
   try {
@@ -99,15 +86,10 @@ export function parseDoc(path: string, raw: string): Doc {
     parsed = { data: {}, content: raw } as matter.GrayMatterFile<string>;
   }
   const bodyOffset = raw.split("\n").length - parsed.content.split("\n").length;
-  return {
-    path,
-    frontmatter: parsed.data,
-    body: parsed.content,
-    bodyOffset,
-    blocks: extractBlocks(parsed.content, bodyOffset),
-  };
+  return { path, frontmatter: parsed.data, body: parsed.content, blocks: extractBlocks(parsed.content, bodyOffset) };
 }
 
-export function loadDocs(folder: string, base = process.cwd()): Doc[] {
-  return walk(folder).map((file) => parseDoc(relative(base, file), readFileSync(file, "utf8")));
+/** Docs under `folder`, with paths relative to it. */
+export function loadDocs(folder: string): Doc[] {
+  return walk(folder).map((file) => parseDoc(relative(folder, file), readFileSync(file, "utf8")));
 }

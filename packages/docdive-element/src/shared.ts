@@ -151,15 +151,24 @@ export function urlStateOwner(index: Index, doc: string, qualified: number | nul
 export const hasSeveralFences = (index: Index, doc: string): boolean =>
   index.diagrams.filter((d) => d.id.startsWith(`${doc}#`)).length > 1;
 
+// The scenario a sequence fence draws: same doc, and its steps are exactly the fence's messages.
+const scenarioOf = (index: Index, diagram: DiagramEntry) =>
+  Object.values(index.scenarios).find(
+    (sc) =>
+      diagram.id.startsWith(`${sc.doc}#`) &&
+      sc.steps.length === diagram.edges.length &&
+      sc.steps.every((st, i) => st.from === diagram.edges[i]?.[0] && st.to === diagram.edges[i]?.[1]),
+  );
+
 // Mermaid sequence SVG has no per-message ids: each message is a `text.messageText` followed by a
 // `[class^=messageLine]` element, both in source order. Mapping is by DOM order, checked against step labels.
-// Returns an error message when the mapping is unreliable, null otherwise.
+// Returns an error message when the mapping is unreliable, null otherwise (also when no scenario is drawn by this fence).
 export function annotateSequence(svg: SVGElement, diagram: DiagramEntry, index: Index): string | null {
+  const scenario = scenarioOf(index, diagram);
+  if (!scenario) return null;
   const texts = [...svg.querySelectorAll<SVGTextElement>("text.messageText")];
   const lines = [...svg.querySelectorAll<SVGElement>('[class^="messageLine"]')];
-  const labels = Object.values(index.scenarios)
-    .filter((sc) => diagram.id.startsWith(`${sc.doc}#`))
-    .flatMap((sc) => sc.steps.map((st) => st.label));
+  const labels = scenario.steps.map((st) => st.label);
   const ok = texts.length === diagram.edges.length && lines.length === texts.length &&
     texts.every((t, i) => t.textContent?.trim() === labels[i]);
   if (!ok) return `sequence mapping unreliable: ${texts.length} texts, ${lines.length} lines, ${diagram.edges.length} messages`;

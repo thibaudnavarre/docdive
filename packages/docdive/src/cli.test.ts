@@ -18,7 +18,7 @@ function docs(): string {
   mkdirSync(folder);
   writeFileSync(
     join(folder, "a.md"),
-    "---\nid: A\n---\n```mermaid\nflowchart LR\n  X[Alpha] --> Y[Beta]\n```\n",
+    "---\nid: A\n---\n```mermaid\nflowchart LR\n  Alpha --> Beta\n```\n",
   );
   return folder;
 }
@@ -94,7 +94,7 @@ describe("lint", () => {
   });
 });
 
-const page = (id: string, label: string) => `---\nid: ${id}\n---\n\`\`\`mermaid\nflowchart LR\n  P[${label}] --> Q[End]\n\`\`\`\n`;
+const page = (id: string, node: string) => `---\nid: ${id}\n---\n\`\`\`mermaid\nflowchart LR\n  ${node} --> Sink\n\`\`\`\n`;
 
 describe("watch", () => {
   const stops: (() => Promise<number>)[] = [];

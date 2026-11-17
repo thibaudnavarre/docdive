@@ -1,8 +1,8 @@
-import { loadDocs } from "./loader.js";
+import type { Doc } from "./loader.js";
 import type { Index } from "./model.js";
 
 /** Markdown context of one element, ready to paste into a coding agent ("Copy context" in the viewer). */
-export function renderContextMarkdown(index: Index, folder: string, id: string): string {
+function renderContextMarkdown(index: Index, docs: Doc[], id: string): string {
   const el = index.elements[id];
   if (!el) throw new Error(`Unknown element "${id}"`);
   const list = (items: string[]) => (items.length ? items.map((i) => `- ${i}`).join("\n") : "- (none)");
@@ -21,15 +21,15 @@ export function renderContextMarkdown(index: Index, folder: string, id: string):
     `## Scenarios\n${scenarios.length ? scenarios.join("\n\n") : "- (none)"}`,
     `## Source\n${list(el.src)}`,
   ];
-  const body = el.doc ? loadDocs(folder, folder).find((d) => d.path === el.doc)?.body.trim() : undefined;
+  const body = el.doc ? docs.find((d) => d.path === el.doc)?.body.trim() : undefined;
   if (body) parts.push(`## Doc\n${body}`);
   return parts.join("\n\n") + "\n";
 }
 
-export function renderAllContexts(index: Index, folder: string): Record<string, string> {
+export function renderAllContexts(index: Index, docs: Doc[]): Record<string, string> {
   return Object.fromEntries(
     Object.keys(index.elements)
       .sort()
-      .map((id) => [id, renderContextMarkdown(index, folder, id)]),
+      .map((id) => [id, renderContextMarkdown(index, docs, id)]),
   );
 }

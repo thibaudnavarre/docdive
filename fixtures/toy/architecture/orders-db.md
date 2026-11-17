@@ -14,3 +14,9 @@ flowchart LR
   class Replica author
   style ConnectionPool fill:#c8e6c9
 ```
+
+```mermaid
+pie title Storage
+  "orders" : 70
+  "audit" : 30
+```

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { breadcrumb, edgeOccurrence, hasSeveralFences, hostTheme, motionAllowed, sourceHref, touchesDiagram, urlStateOwner, withTrace, type DiagramEntry, type Index, type Step } from "./shared.js";
+import { annotateSequence, breadcrumb, edgeOccurrence, hasSeveralFences, hostTheme, motionAllowed, sourceHref, touchesDiagram, urlStateOwner, withTrace, type DiagramEntry, type Index, type Step } from "./shared.js";
 
 const fwd = (from: string, to: string): Step => ({ from, to, label: "", isReturn: false });
 const ret = (from: string, to: string): Step => ({ from, to, label: "", isReturn: true });
@@ -174,5 +174,43 @@ describe("motionAllowed", () => {
   it("skips motion under prefers-reduced-motion or without Element.animate", () => {
     expect(motionAllowed(animatable, media(true))).toBe(false);
     expect(motionAllowed({}, media(false))).toBe(false);
+  });
+});
+
+describe("annotateSequence", () => {
+  // Fake SVG: message texts and lines in DOM order, recording the attributes set on them.
+  const svg = (labels: string[]) => {
+    const node = (text = "") => ({ textContent: text, attrs: {} as Record<string, string>, setAttribute(k: string, v: string) { this.attrs[k] = v; } });
+    const texts = labels.map((l) => node(l));
+    const lines = labels.map(() => node());
+    const root = { querySelectorAll: (sel: string) => (sel === "text.messageText" ? texts : lines) };
+    return { root: root as unknown as SVGElement, texts };
+  };
+  const seq = (id: string, edges: [string, string][]): DiagramEntry => ({ id, type: "sequence", nodes: [], edges });
+  const step = (from: string, to: string, label: string): Step => ({ from, to, label, isReturn: false });
+  const index: Index = {
+    diagrams: [],
+    elements: {},
+    scenarios: {
+      "ops#0": { doc: "ops.md", steps: [step("A", "B", "first 0"), step("B", "C", "first 1")] },
+      "ops#1": { doc: "ops.md", steps: [step("C", "D", "second")] },
+    },
+  };
+
+  it("maps the second sequence fence of a doc to its own scenario", () => {
+    const { root, texts } = svg(["second"]);
+    expect(annotateSequence(root, seq("ops.md#1", [["C", "D"]]), index)).toBeNull();
+    expect(texts[0].attrs["data-docdive-message"]).toBe("1");
+  });
+
+  it("skips a fence that draws no scenario without reporting an error", () => {
+    const { root, texts } = svg(["other"]);
+    expect(annotateSequence(root, seq("ops.md#2", [["X", "Y"]]), index)).toBeNull();
+    expect(texts[0].attrs).toEqual({});
+  });
+
+  it("reports a label mismatch on the fence's own scenario", () => {
+    const { root } = svg(["first 0", "wrong"]);
+    expect(annotateSequence(root, seq("ops.md#0", [["A", "B"], ["B", "C"]]), index)).toMatch(/unreliable/);
   });
 });

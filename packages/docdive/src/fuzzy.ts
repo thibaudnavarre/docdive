@@ -48,11 +48,6 @@ export function proposeFuzzyIds(elements: Record<string, Element>): Diagnostic[]
   const ids = Object.keys(elements).sort();
   const norm = new Map(ids.map((id) => [id, normalise(id)]));
   const out: Diagnostic[] = [];
-  const byLength = new Map<number, string[]>();
-  for (const id of ids) {
-    const n = norm.get(id)!;
-    byLength.set(n.length, [...(byLength.get(n.length) ?? []), id]);
-  }
 
   const emit = (a: string, b: string, kind: string, dist: number, confidence: number) =>
     out.push({

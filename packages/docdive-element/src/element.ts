@@ -19,7 +19,7 @@ import {
   type Index,
 } from "./shared.js";
 
-export { resolveMermaid, isMermaidApi, type MermaidApi } from "./mermaid-resolver.js";
+export { resolveMermaid, type MermaidApi } from "./mermaid-resolver.js";
 
 // <docdive-diagram>: renders one Mermaid fence into its own open shadow root, maps IDs through
 // index.json, shows the info panel on node click, and deep-dives through the panel's "Open" link to the
@@ -132,6 +132,26 @@ text[data-docdive-active] { fill: var(--docdive-accent) !important; font-weight:
 `;
 
 let renderCount = 0;
+
+// A button copying `text()` to the clipboard, and its status (`pending`, `ok`, `unavailable` or the error name).
+// The write stays synchronous in the click: an await before it can lose the transient user activation.
+function copyButton(label: string, attr: string, text: () => string | undefined): [HTMLButtonElement, string, HTMLSpanElement] {
+  const button = el("button", { [attr]: "" }, label);
+  const status = el("span", { [`${attr}-status`]: "" });
+  button.addEventListener("click", () => {
+    const value = text();
+    if (value === undefined) return void (status.textContent = "unavailable");
+    const shown = (e: unknown) => (status.textContent = e instanceof Error ? e.name : String(e));
+    status.textContent = "pending";
+    try {
+      // navigator.clipboard is undefined outside a secure context.
+      navigator.clipboard.writeText(value).then(() => (status.textContent = "ok"), shown);
+    } catch (e) {
+      shown(e);
+    }
+  });
+  return [button, " ", status];
+}
 
 // `docdive-diagram`: the fence a link was copied from; null (absent or invalid) means unqualified.
 const qualifier = (q: URLSearchParams): number | null => {
@@ -259,8 +279,12 @@ export class DocdiveDiagram extends HTMLElement {
       const { doc, n } = this.identity();
       const diagramId = `${doc}#${n}`;
       const diagram = this.index.diagrams.find((d) => d.id === diagramId);
-      if (!diagram) return this.fail(`docdive: unknown diagram ${diagramId}`);
       const resolved = await resolveMermaid({ injected: injectedMermaid, win: window, loadBundled });
+      if (!diagram) {
+        // Not indexed (pie, state, a flowchart docdive cannot parse): draw it plain rather than hide it.
+        this.host.innerHTML = (await resolved.mermaid.render(`docdive-r${renderCount++}`, source)).svg;
+        return;
+      }
       let used: string = resolved.source;
       let problem: string | null = null;
       try {
@@ -437,36 +461,12 @@ export class DocdiveDiagram extends HTMLElement {
       row.append(el("strong", {}, `${name}: `), el("span", { "data-docdive-value": "" }, values.join(", ")));
       this.panel.append(row);
     }
-    const copy = el("button", { "data-docdive-copy": "" }, "Copy context");
-    const status = el("span", { "data-docdive-copy-status": "" });
-    copy.addEventListener("click", () => {
-      const text = this.contexts?.[id];
-      if (text === undefined) {
-        status.textContent = "unavailable";
-        return;
-      }
-      const shown = (e: unknown) => (status.textContent = e instanceof Error ? e.name : String(e));
-      status.textContent = "pending";
-      try {
-        // navigator.clipboard is undefined outside a secure context.
-        navigator.clipboard.writeText(text).then(() => (status.textContent = "ok"), shown);
-      } catch (e) {
-        shown(e);
-      }
-    });
-    const link = el("button", { "data-docdive-copy-link": "" }, "Copy link");
-    const linkStatus = el("span", { "data-docdive-copy-link-status": "" });
-    link.addEventListener("click", () => {
-      const shown = (e: unknown) => (linkStatus.textContent = e instanceof Error ? e.name : String(e));
-      linkStatus.textContent = "pending";
-      try {
-        navigator.clipboard.writeText(this.selectionUrl(id)).then(() => (linkStatus.textContent = "ok"), shown);
-      } catch (e) {
-        shown(e);
-      }
-    });
     const row = el("div");
-    row.append(copy, " ", status, " ", link, " ", linkStatus);
+    row.append(
+      ...copyButton("Copy context", "data-docdive-copy", () => this.contexts?.[id]),
+      " ",
+      ...copyButton("Copy link", "data-docdive-copy-link", () => this.selectionUrl(id)),
+    );
     const line = this.diagram?.lines?.[id];
     const doc = this.page?.doc;
     const href = doc && line ? sourceHref(this.map.sources?.[doc], this.map.sourceUrl, doc, line) : null;

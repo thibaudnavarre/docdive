@@ -118,6 +118,14 @@ for (const site of SITES) {
       await expect(page.locator("docdive-diagram [data-docdive-breadcrumb]")).toHaveCount(0);
     });
 
+    // orders-db.md ends with a pie chart: docdive does not index it, but it must still render, without an error.
+    test(`a fence docdive does not index still renders (${site.name})`, async ({ page }) => {
+      await page.goto(url("architecture/orders-db.md"));
+      const pie = page.locator("docdive-diagram").nth(2);
+      await expect(pie.locator("svg")).toHaveCount(1);
+      await expect(pie.locator("[data-docdive-error]")).toHaveText("");
+    });
+
     // The sites set a GitHub edit URL; the element rewrites it to /blob/. system.md declares OrdersDB on line 8.
     test(`Source link opens the repo page at the node line (${site.name})`, async ({ page }) => {
       await page.goto(url(SYSTEM));
