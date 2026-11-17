@@ -17,6 +17,7 @@ export default defineConfig(
       ".agents/",
       ".claude/",
       ".github/extensions/",
+      ".cor/design-lab/",
     ],
   },
   js.configs.recommended,

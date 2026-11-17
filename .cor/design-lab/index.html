@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en" data-style="a" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>docdive — UI style lab</title>
+    <link rel="stylesheet" href="./lab.css" />
+  </head>
+  <body>
+    <main class="lab">
+      <header class="toolbar">
+        <div class="title-wrap">
+          <h1>docdive viewer — style lab</h1>
+          <p class="subtitle">Same data (fixtures/toy), same states, three structural directions. Real Mermaid rendering, mock chrome.</p>
+        </div>
+        <div class="controls">
+          <div class="style-switch" role="radiogroup" aria-label="Style selector">
+            <button type="button" data-style="a" aria-pressed="true">A — Inspector dock</button>
+            <button type="button" data-style="b" aria-pressed="false">B — Reading flow</button>
+            <button type="button" data-style="c" aria-pressed="false">C — Framed canvas</button>
+          </div>
+          <button type="button" class="theme-toggle" aria-pressed="false">Dark</button>
+        </div>
+      </header>
+
+      <!-- Host-site stand-in: the docs page the element lives in. -->
+      <section class="site">
+        <nav class="site-nav" aria-label="Docs"><span class="site-brand">Docs</span><a href="#" aria-current="page">architecture</a><a href="#">scenarios</a></nav>
+
+        <h2 class="lab-h">1 · Overview — <code>&lt;docdive-map&gt;</code></h2>
+        <div class="dd" id="map"></div>
+
+        <h2 class="lab-h">2 · Element page — <code>system</code> (flowchart, OrderService selected, step 2)</h2>
+        <div class="dd" id="page-system" data-doc="architecture/system.md" data-fence="0" data-select="OrderService" data-step="2"></div>
+
+        <h2 class="lab-h">3 · Scenario page — <code>checkout-happy-path</code> (sequence, step 3)</h2>
+        <div class="dd" id="page-checkout" data-doc="scenarios/checkout.md" data-fence="0" data-step="3"></div>
+
+        <h2 class="lab-h">4 · Child page — <code>OrderService</code> (no scenario drawn here, trace passes through)</h2>
+        <div class="dd" id="page-orders" data-doc="architecture/order-service.md" data-fence="0" data-step="2"></div>
+
+        <h2 class="lab-h">5 · States</h2>
+        <div class="dd states" id="states">
+          <div class="dd-row">
+            <button class="dd-btn">Default</button>
+            <button class="dd-btn is-hover">Hover</button>
+            <button class="dd-btn is-focus">Focus</button>
+            <button class="dd-btn" disabled>Disabled</button>
+            <button class="dd-btn dd-primary">Dive into X →</button>
+            <button class="dd-btn dd-primary is-hover">Dive into X →</button>
+            <span class="dd-chip">parent</span><span class="dd-chip is-hover">hover</span><span class="dd-chip dd-chip-kind">scenario</span>
+          </div>
+          <div class="dd-row">
+            <span class="dd-status ok">Copied</span>
+            <span class="dd-status err">Clipboard unavailable</span>
+            <span class="dd-error">docdive: index.json has schema version 0, this element reads version 1.</span>
+          </div>
+          <div class="dd-row"><div class="dd-skeleton" aria-busy="true" aria-label="Loading diagram"></div></div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./lab.js"></script>
+    <script>
+      const root = document.documentElement;
+      const buttons = Array.from(document.querySelectorAll(".style-switch button"));
+      const supportedStyles = new Set(["a", "b", "c"]);
+      function applyStyle(style) {
+        if (!supportedStyles.has(style)) return;
+        root.dataset.style = style;
+        for (const item of buttons) item.setAttribute("aria-pressed", String(item.dataset.style === style));
+      }
+      for (const button of buttons) button.addEventListener("click", () => applyStyle(button.dataset.style));
+      const u = new URL(window.location.href);
+      if (u.searchParams.get("style")) applyStyle(u.searchParams.get("style"));
+      const theme = document.querySelector(".theme-toggle");
+      function applyTheme(t) {
+        root.dataset.theme = t;
+        theme.setAttribute("aria-pressed", String(t === "dark"));
+        theme.textContent = t === "dark" ? "Light" : "Dark";
+      }
+      theme.addEventListener("click", () => applyTheme(root.dataset.theme === "dark" ? "light" : "dark"));
+      if (u.searchParams.get("theme")) applyTheme(u.searchParams.get("theme"));
+    </script>
+  </body>
+</html>

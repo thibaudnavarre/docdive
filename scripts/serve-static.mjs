@@ -4,7 +4,7 @@ import { extname, join, normalize } from "node:path";
 
 // Serve a static site build under a base path: node serve-static.mjs <dir> <port> [base=/docdive/]
 const [dir, portArg, base = "/docdive/"] = process.argv.slice(2);
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".woff2": "font/woff2" };
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".woff2": "font/woff2" };
 
 createServer(async (req, res) => {
   const path = normalize(decodeURIComponent(new URL(req.url ?? "/", "http://x").pathname));
