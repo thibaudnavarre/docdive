@@ -294,14 +294,35 @@ export function applyTrace(
     host.querySelectorAll(`[data-docdive-message="${step}"]`).forEach(activate);
   }
   if (diagram.type !== "flowchart") return;
-  for (const id of new Set([s.from, s.to])) {
-    const node = host.querySelector(`[data-docdive-node="${id}"]`);
+  // A participant the diagram does not draw lights up the closest ancestor it does draw (its container box).
+  const from = drawnProxy(index, diagram, s.from);
+  const to = drawnProxy(index, diagram, s.to);
+  for (const id of new Set([from, to])) {
+    const node = id && host.querySelector(`[data-docdive-node="${id}"]`);
     if (node) activate(node);
   }
   const { a, b, k } = edgeOccurrence(all, step - 1);
-  const edges = [...host.querySelectorAll(`[data-docdive-edge^="${a}>${b}#"]`)];
+  const [pa, pb] = [drawnProxy(index, diagram, a), drawnProxy(index, diagram, b)];
+  if (!pa || !pb || pa === pb) return void through(throughHost, index, diagram, s);
+  const edgesOf = (x: string, y: string) => [...host.querySelectorAll(`[data-docdive-edge^="${x}>${y}#"]`)];
+  const edges = edgesOf(pa, pb).length ? edgesOf(pa, pb) : edgesOf(pb, pa);
   const edge = edges[k] ?? edges[edges.length - 1];
   if (edge) activate(edge);
+  through(throughHost, index, diagram, s);
+}
+
+// Nearest element the diagram draws for a participant: itself, else the closest drawn ancestor; null when none.
+export function drawnProxy(index: Index, diagram: DiagramEntry, id: string): string | null {
+  const seen = new Set<string>();
+  for (let cur: string | null | undefined = id; cur && !seen.has(cur); cur = index.elements[cur]?.parent) {
+    seen.add(cur);
+    if (drawsElement(diagram, cur)) return cur;
+  }
+  return null;
+}
+
+// "Scenario passes through X" for an ancestor of the diagram's owner that the step involves but the diagram does not draw.
+function through(throughHost: Element, index: Index, diagram: DiagramEntry, s: Step): void {
   for (const id of ownerChain(index, diagram.id).reverse()) {
     if ((id === s.from || id === s.to) && !drawsElement(diagram, id)) {
       throughHost.append(el("div", { "data-docdive-through": id }, `Scenario passes through ${id}`));

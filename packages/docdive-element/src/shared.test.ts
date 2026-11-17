@@ -5,6 +5,7 @@ import {
   breadcrumb,
   diagramLabel,
   divable,
+  drawnProxy,
   edgeOccurrence,
   hasSeveralFences,
   hostTheme,
@@ -286,6 +287,13 @@ describe("inspector and overview helpers", () => {
     expect(systemTree(index)).toEqual([
       { id: "system", children: [{ id: "API", children: [] }, { id: "Orders", children: [] }, { id: "DB", children: [{ id: "Pool", children: [] }] }] },
     ]);
+  });
+
+  it("proxies an undrawn participant to its closest drawn ancestor", () => {
+    const system = index.diagrams[0] as DiagramEntry;
+    expect(drawnProxy(index, system, "Pool")).toBe("DB");
+    expect(drawnProxy(index, system, "API")).toBe("API");
+    expect(drawnProxy(index, system, "loose")).toBeNull();
   });
 
   it("lists the elements a scenario crosses once, in order of first appearance", () => {

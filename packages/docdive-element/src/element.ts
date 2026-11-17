@@ -125,7 +125,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 [data-docdive-title] { margin: 0; font-size: 1.3em; font-weight: 650; letter-spacing: -.01em; }
 [data-docdive-close] { border-color: transparent; background: transparent; }
 [data-docdive-field] { display: grid; gap: .3em; }
-[data-docdive-field] > span:first-child { font-size: .78em; text-transform: uppercase; letter-spacing: .06em; color: var(--docdive-fg-muted); font-weight: 600; }
+[data-docdive-field] > .label { font-size: .78em; text-transform: uppercase; letter-spacing: .06em; color: var(--docdive-fg-muted); font-weight: 600; }
 [data-docdive-field="description"] { color: var(--docdive-fg-muted); }
 .chips { display: flex; flex-wrap: wrap; gap: .3em; }
 [data-docdive-field="src"] code { font-family: var(--docdive-font-mono); font-size: .92em; }
@@ -599,7 +599,7 @@ export class DocdiveDiagram extends HTMLElement {
       const row = el("div", { "data-docdive-field": name });
       const chips = el("div", { class: "chips" });
       chips.append(...values.map((v) => this.chip(name, v)));
-      row.append(el("span", {}, FIELD_LABELS[name] ?? name), chips);
+      row.append(el("span", { class: "label" }, FIELD_LABELS[name] ?? name), chips);
       this.panel.append(row);
     }
     const src = index.elements[id]?.src ?? [];
@@ -607,7 +607,7 @@ export class DocdiveDiagram extends HTMLElement {
       const row = el("div", { "data-docdive-field": "src" });
       const list = el("div", { class: "chips" });
       list.append(...src.map((p) => el("code", { "data-docdive-value": "" }, p)));
-      row.append(el("span", {}, "Source"), list);
+      row.append(el("span", { class: "label" }, "Source"), list);
       this.panel.append(row);
     }
     const actions = el("div", { class: "actions" });
