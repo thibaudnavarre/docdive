@@ -10,14 +10,14 @@
     <main class="lab">
       <header class="toolbar">
         <div class="title-wrap">
-          <h1>docdive viewer — style lab</h1>
-          <p class="subtitle">Same data (fixtures/toy), same states, three structural directions. Real Mermaid rendering, mock chrome.</p>
+          <h1>docdive viewer — style lab · round 2</h1>
+          <p class="subtitle">Timeline player + data living through the steps. Base = round-1 lock (reading flow, docked inspector). Same data (fixtures/toy + mock state notes), three directions.</p>
         </div>
         <div class="controls">
           <div class="style-switch" role="radiogroup" aria-label="Style selector">
-            <button type="button" data-style="a" aria-pressed="true">A — Inspector dock</button>
-            <button type="button" data-style="b" aria-pressed="false">B — Reading flow</button>
-            <button type="button" data-style="c" aria-pressed="false">C — Framed canvas</button>
+            <button type="button" data-style="a" aria-pressed="true">A — Rail + state strip</button>
+            <button type="button" data-style="b" aria-pressed="false">B — Story bar + ledger</button>
+            <button type="button" data-style="c" aria-pressed="false">C — Swimlanes</button>
           </div>
           <button type="button" class="theme-toggle" aria-pressed="false">Dark</button>
         </div>
@@ -27,32 +27,31 @@
       <section class="site">
         <nav class="site-nav" aria-label="Docs"><span class="site-brand">Docs</span><a href="#" aria-current="page">architecture</a><a href="#">scenarios</a></nav>
 
-        <h2 class="lab-h">1 · Overview — <code>&lt;docdive-map&gt;</code></h2>
-        <div class="dd" id="map"></div>
-
-        <h2 class="lab-h">2 · Element page — <code>system</code> (flowchart, OrderService selected, step 2)</h2>
+        <h2 class="lab-h">1 · Element page — <code>system</code> (flowchart, step 2, OrderService selected → inspector docked with its state)</h2>
         <div class="dd" id="page-system" data-doc="architecture/system.md" data-fence="0" data-select="OrderService" data-step="2"></div>
 
-        <h2 class="lab-h">3 · Scenario page — <code>checkout-happy-path</code> (sequence, step 3)</h2>
-        <div class="dd" id="page-checkout" data-doc="scenarios/checkout.md" data-fence="0" data-step="3"></div>
+        <h2 class="lab-h">2 · Scenario page — <code>checkout-happy-path</code> (sequence with the state notes, step 6: order lands in the DB and the frontend)</h2>
+        <div class="dd" id="page-checkout" data-doc="scenarios/checkout.md" data-fence="0" data-step="6"></div>
 
-        <h2 class="lab-h">4 · Child page — <code>OrderService</code> (no scenario drawn here, trace passes through)</h2>
-        <div class="dd" id="page-orders" data-doc="architecture/order-service.md" data-fence="0" data-step="2"></div>
+        <h2 class="lab-h">3 · Child page — <code>OrdersDB</code> (trace passes through; DB state shown at step 6, nothing before)</h2>
+        <div class="dd" id="page-db" data-doc="architecture/orders-db.md" data-fence="0" data-step="6"></div>
 
-        <h2 class="lab-h">5 · States</h2>
+        <h2 class="lab-h">4 · States</h2>
         <div class="dd states" id="states">
           <div class="dd-row">
-            <button class="dd-btn">Default</button>
-            <button class="dd-btn is-hover">Hover</button>
-            <button class="dd-btn is-focus">Focus</button>
-            <button class="dd-btn" disabled>Disabled</button>
-            <button class="dd-btn dd-primary">Dive into X →</button>
-            <button class="dd-btn dd-primary is-hover">Dive into X →</button>
-            <span class="dd-chip">parent</span><span class="dd-chip is-hover">hover</span><span class="dd-chip dd-chip-kind">scenario</span>
+            <button class="dd-btn dd-icon dd-glyph" aria-label="Play"><span class="dd-glyph-icon"></span></button>
+            <button class="dd-btn dd-icon dd-glyph" aria-label="Pause" data-playing><span class="dd-glyph-icon"></span></button>
+            <button class="dd-btn dd-icon dd-glyph is-hover" aria-label="Play"><span class="dd-glyph-icon"></span></button>
+            <button class="dd-btn dd-icon dd-glyph is-focus" aria-label="Play"><span class="dd-glyph-icon"></span></button>
+            <span class="dd-mark-demo"><span class="dd-mark" data-past></span><span class="dd-mark" aria-current></span><span class="dd-mark" data-has-state></span><span class="dd-mark"></span></span>
+            <span class="dd-segs-demo"><span class="dd-seg" data-past></span><span class="dd-seg" aria-current></span><span class="dd-seg" data-has-state></span><span class="dd-seg"></span></span>
           </div>
           <div class="dd-row">
+            <span class="dd-field"><span class="dd-k">status</span><span class="dd-v">pending</span></span>
+            <span class="dd-field" data-changed><span class="dd-k">status</span><span class="dd-v">paid</span></span>
+            <span class="dd-chip dd-chip-entity">Order</span>
+            <span class="dd-chip dd-chip-through">passes through OrderService</span>
             <span class="dd-status ok">Copied</span>
-            <span class="dd-status err">Clipboard unavailable</span>
             <span class="dd-error">docdive: index.json has schema version 0, this element reads version 1.</span>
           </div>
           <div class="dd-row"><div class="dd-skeleton" aria-busy="true" aria-label="Loading diagram"></div></div>

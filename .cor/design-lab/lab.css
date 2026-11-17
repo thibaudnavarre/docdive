@@ -37,9 +37,9 @@ body { margin: 0; background: var(--lab-bg); color: var(--lab-fg); font: 15px/1.
   --docdive-accent: #4f46e5; --docdive-accent-soft: color-mix(in srgb, var(--docdive-accent) 12%, transparent);
   --docdive-selected: #0284c7; --docdive-on-accent: #fff; --docdive-error: #b91c1c; --docdive-ok: #15803d;
   --docdive-node-fill: #fff; --docdive-node-stroke: #8e8e96; --docdive-edge: #71717a;
-  --docdive-radius: 10px; --docdive-space: 12px; --docdive-duration: 160ms;
+  --docdive-radius: 14px; --docdive-space: 16px; --docdive-duration: 160ms;
   --docdive-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 16px -8px rgb(0 0 0 / 0.08);
-  font-family: var(--docdive-font); color: var(--docdive-fg); font-size: 14px; line-height: 1.45;
+  font-family: var(--docdive-font); color: var(--docdive-fg); font-size: 15px; line-height: 1.45; container-type: inline-size;
 }
 html[data-theme="dark"] .dd {
   --docdive-bg: #111113; --docdive-surface: #18181b; --docdive-surface-2: #1f1f23; --docdive-fg: #e4e4e7; --docdive-fg-muted: #9b9ba6;
@@ -78,13 +78,13 @@ text[data-docdive-active] { fill: var(--docdive-accent) !important; font-weight:
 .node[data-docdive-active], path[data-docdive-active], [class^="messageLine"][data-docdive-active] { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--docdive-accent) 55%, transparent)); }
 
 /* Shared primitives */
-.dd-btn { font: inherit; font-size: 0.93em; color: inherit; background: var(--docdive-surface); border: 1px solid var(--docdive-border); border-radius: calc(var(--docdive-radius) - 3px); padding: 5px 11px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; line-height: 1.3; transition: background-color var(--docdive-duration), border-color var(--docdive-duration), color var(--docdive-duration); }
+.dd-btn { font: inherit; font-size: 0.93em; color: inherit; background: var(--docdive-surface); border: 1px solid var(--docdive-border); border-radius: 999px; padding: 5px 14px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; line-height: 1.3; transition: background-color var(--docdive-duration), border-color var(--docdive-duration), color var(--docdive-duration); }
 .dd-btn:is(:hover, .is-hover):not(:disabled) { border-color: var(--docdive-accent); background: var(--docdive-accent-soft); }
 .dd-btn:disabled { opacity: 0.45; cursor: default; }
-.dd-btn:is(:focus-visible, .is-focus), .dd-chip:focus-visible, .dd-pill:focus-visible, .dd-range:focus-visible, select:focus-visible, .dd a:focus-visible, [data-docdive-node]:focus-visible { outline: 2px solid var(--docdive-accent); outline-offset: 2px; }
+.dd-btn:is(:focus-visible, .is-focus), .dd-chip:focus-visible, .dd-mark:focus-visible, .dd-seg:focus-visible, [role="slider"]:focus-visible, .dd-lane-col:focus-visible, .dd-trail-step:focus-visible, .dd-state-owner:focus-visible, select:focus-visible, .dd a:focus-visible, [data-docdive-node]:focus-visible { outline: 2px solid var(--docdive-accent); outline-offset: 2px; }
 .dd-primary { background: var(--docdive-accent); color: var(--docdive-on-accent); border-color: var(--docdive-accent); font-weight: 600; }
 .dd-primary:is(:hover, .is-hover):not(:disabled) { background: color-mix(in srgb, var(--docdive-accent) 85%, #000); color: var(--docdive-on-accent); }
-.dd-icon { width: 30px; height: 30px; padding: 0; justify-content: center; font-size: 1em; }
+.dd-icon { width: 36px; height: 36px; padding: 0; justify-content: center; font-size: 1em; }
 .dd-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; background: var(--docdive-surface-2); border: 1px solid transparent; color: inherit; text-decoration: none; font-size: 0.86em; line-height: 1.5; }
 a.dd-chip:is(:hover, .is-hover) { border-color: var(--docdive-accent); color: var(--docdive-accent); }
 .dd-chip-kind { background: transparent; border-color: var(--docdive-border); color: var(--docdive-fg-muted); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72em; font-weight: 600; }
@@ -97,7 +97,7 @@ a.dd-chip:is(:hover, .is-hover) { border-color: var(--docdive-accent); color: va
 .dd-muted { color: var(--docdive-fg-muted); }
 .dd-skeleton { height: 120px; width: 100%; border-radius: var(--docdive-radius); background: linear-gradient(90deg, var(--docdive-surface-2), var(--docdive-bg), var(--docdive-surface-2)); background-size: 200% 100%; animation: dd-shimmer 1.4s infinite; }
 @keyframes dd-shimmer { to { background-position: -200% 0; } }
-.dd select { font: inherit; font-size: 0.93em; color: inherit; background: var(--docdive-surface); border: 1px solid var(--docdive-border); border-radius: calc(var(--docdive-radius) - 3px); padding: 5px 8px; max-width: 100%; }
+.dd select { font: inherit; font-size: 0.93em; color: inherit; background: var(--docdive-surface); border: 1px solid var(--docdive-border); border-radius: 999px; padding: 5px 14px; max-width: 100%; }
 .dd-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
 .states { padding: 16px; border: 1px dashed var(--docdive-border); border-radius: var(--docdive-radius); }
 @media (prefers-reduced-motion: reduce) { .dd *, .dd *::before { transition: none !important; animation: none !important; } }
@@ -108,28 +108,55 @@ a.dd-chip:is(:hover, .is-hover) { border-color: var(--docdive-accent); color: va
 .dd-head li + li::before { content: "/"; margin-right: 6px; color: var(--docdive-fg-muted); }
 .dd-head a { color: var(--docdive-fg-muted); text-decoration: none; }
 .dd-head a:hover { color: var(--docdive-accent); text-decoration: underline; }
-.dd-head [aria-current] { font-weight: 650; }
+.dd-head [aria-current] { font-weight: 650; font-size: 1.3em; letter-spacing: -0.02em; }
 
-/* Player */
-.dd-player { display: grid; gap: 8px; }
-.dd-transport { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.dd-transport-btns { display: inline-flex; gap: 4px; }
-.dd-counter { font-variant-numeric: tabular-nums; color: var(--docdive-fg-muted); white-space: nowrap; }
-.dd-counter .dd-step { color: var(--docdive-fg); font-weight: 650; }
-.dd-range { width: 100%; accent-color: var(--docdive-accent); margin: 0; }
-.dd-pills { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; flex-wrap: wrap; }
-.dd-pill { font: inherit; font-size: 0.8em; width: 26px; height: 26px; border-radius: 999px; border: 1px solid var(--docdive-border); background: var(--docdive-surface); color: var(--docdive-fg-muted); cursor: pointer; }
-.dd-pill:hover { border-color: var(--docdive-accent); color: var(--docdive-accent); }
-.dd-pill[aria-current] { background: var(--docdive-accent); color: var(--docdive-on-accent); border-color: var(--docdive-accent); }
-.dd-sentence { margin: 0; }
-.dd-sentence em { font-style: normal; color: var(--docdive-accent); font-family: var(--docdive-font-mono); font-size: 0.95em; }
+/* ------------------------------------------------------------------------------------------------
+   Base layout — round-1 lock: one column (head, player, diagram, inspector); inspector docks right when a node
+   is selected and the element is ≥ 960px wide. Cards with --docdive-radius and --docdive-shadow.
+   ------------------------------------------------------------------------------------------------ */
+.dd-page { display: grid; gap: var(--docdive-space); grid-template-areas: "head" "player" "diagram" "inspector"; }
+.dd-head { grid-area: head; }
+.dd-players { grid-area: player; display: grid; gap: 10px; }
+.dd-diagram { grid-area: diagram; position: relative; padding: 20px; border-radius: var(--docdive-radius); background: var(--docdive-surface); border: 1px solid var(--docdive-border); overflow-x: auto; }
+.dd-inspector { grid-area: inspector; }
+@container (min-width: 960px) {
+  .dd-page[data-docked] { grid-template-columns: minmax(0, 1fr) 320px; grid-template-areas: "head head" "player player" "diagram inspector"; align-items: start; }
+  .dd-page[data-docked] .dd-inspector { position: sticky; top: var(--docdive-space); }
+}
+.dd-player { display: grid; gap: 12px; padding: 16px 20px; border-radius: var(--docdive-radius); background: var(--docdive-surface); box-shadow: var(--docdive-shadow); border: 1px solid var(--docdive-border); }
+.dd-picker-row { display: flex; justify-content: flex-start; }
+.dd-players .dd-player { display: none; }
+html[data-style="a"] .dd-players .v-a, html[data-style="b"] .dd-players .v-b, html[data-style="c"] .dd-players .v-c { display: grid; }
+.dd-sentence { margin: 0; font-size: 1.25em; line-height: 1.35; letter-spacing: -0.01em; font-weight: 600; }
+.dd-sentence em { font-style: normal; color: var(--docdive-accent); font-family: var(--docdive-font-mono); font-size: 0.9em; font-weight: 500; }
+.dd-sentence .dd-muted { font-weight: 400; font-size: 0.8em; }
 .dd-through:empty { display: none; }
+.dd-counter { font-variant-numeric: tabular-nums; color: var(--docdive-fg-muted); white-space: nowrap; font-size: 0.93em; }
+.dd-counter .dd-step { color: var(--docdive-fg); font-weight: 650; }
 
-/* Inspector */
-.dd-inspector { display: grid; gap: 12px; align-content: start; }
+/* Play/pause glyph: one button, icon drawn in CSS, flips on [data-playing] (= data-docdive-play / data-docdive-pause). */
+.dd-glyph { border-radius: 999px; background: var(--docdive-accent); border-color: var(--docdive-accent); color: var(--docdive-on-accent); flex: none; }
+.dd-glyph:is(:hover, .is-hover):not(:disabled) { background: color-mix(in srgb, var(--docdive-accent) 85%, #000); border-color: transparent; box-shadow: var(--docdive-shadow); }
+.dd-glyph-icon { display: block; width: 0; height: 0; border-style: solid; border-width: 7px 0 7px 12px; border-color: transparent transparent transparent currentColor; margin-left: 3px; transition: border-width var(--docdive-duration), margin var(--docdive-duration); }
+.dd-glyph[data-playing] .dd-glyph-icon { width: 4px; height: 14px; border-width: 0 4px; border-color: currentColor; margin-left: 0; }
+
+/* Field chips (k = v): shared by strip, ledger, lanes, inspector. Changed at this step → accent tint. */
+.dd-fields { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: flex-start; }
+.dd-field { display: inline-flex; align-items: baseline; gap: 4px; padding: 1px 8px; border-radius: 6px; background: var(--docdive-surface-2); font-family: var(--docdive-font-mono); font-size: 0.82em; line-height: 1.6; color: var(--docdive-fg); }
+.dd-field .dd-k { color: var(--docdive-fg-muted); }
+.dd-field .dd-k::after { content: "="; margin-left: 2px; }
+.dd-field[data-changed] { background: var(--docdive-accent-soft); color: var(--docdive-accent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--docdive-accent) 35%, transparent); }
+.dd-field[data-changed] .dd-k { color: color-mix(in srgb, var(--docdive-accent) 70%, var(--docdive-fg-muted)); }
+.dd-chip-entity { background: transparent; border-color: var(--docdive-border); font-weight: 650; font-size: 0.8em; letter-spacing: 0.01em; }
+.dd-state-owner { font: inherit; font-weight: 650; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; border-radius: 4px; }
+.dd-state-owner:hover { color: var(--docdive-accent); text-decoration: underline; }
+
+/* Inspector (locked) + "State at this step" section */
+.dd-inspector { display: grid; gap: 14px; align-content: start; padding: 20px; border-radius: var(--docdive-radius); background: var(--docdive-surface); box-shadow: var(--docdive-shadow); border: 1px solid var(--docdive-border); }
+.dd-inspector[data-empty] { box-shadow: none; background: transparent; border: 0; padding: 0; }
 .dd-insp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
 .dd-insp-head > div { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.dd-title { margin: 0; font-size: 1.05em; font-weight: 650; letter-spacing: -0.01em; }
+.dd-title { margin: 0; font-size: 1.3em; font-weight: 650; letter-spacing: -0.01em; }
 .dd-desc { margin: 0; color: var(--docdive-fg-muted); }
 .dd-rel { display: grid; gap: 4px; }
 .dd-rel-label { font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--docdive-fg-muted); font-weight: 600; }
@@ -140,86 +167,98 @@ a.dd-chip:is(:hover, .is-hover) { border-color: var(--docdive-accent); color: va
 .dd-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .dd-empty { margin: 0; color: var(--docdive-fg-muted); }
 .dd-close { border-color: transparent; background: transparent; }
-
-/* Map */
-.dd-map { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; }
-.dd-map-h { margin: 0 0 8px; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.08em; color: var(--docdive-fg-muted); }
-.dd-tree, .dd-tree ul, .dd-scns { list-style: none; margin: 0; padding: 0; }
-.dd-tree ul { margin-left: 14px; padding-left: 14px; border-left: 1px solid var(--docdive-border); }
-.dd-tree-row { display: flex; gap: 10px; align-items: baseline; padding: 5px 0; flex-wrap: wrap; }
-.dd-tree-name { font-weight: 500; color: inherit; text-decoration: none; }
-a.dd-tree-name { font-weight: 650; }
-a.dd-tree-name:hover { color: var(--docdive-accent); text-decoration: underline; }
-.dd-tree-desc { color: var(--docdive-fg-muted); font-size: 0.92em; flex: 1 1 240px; }
-.dd-scn { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--docdive-border); }
-.dd-scn:first-child { border-top: 0; padding-top: 0; }
-.dd-scn-name { font-weight: 650; color: inherit; text-decoration: none; }
-.dd-scn-name:hover { color: var(--docdive-accent); }
-@media (max-width: 720px) { .dd-map { grid-template-columns: 1fr; } }
+.dd-primary { justify-self: start; }
+.dd-insp-state { justify-items: start; padding: 10px 12px; border-radius: calc(var(--docdive-radius) - 4px); background: var(--docdive-bg); border: 1px solid var(--docdive-border); gap: 8px; }
+.dd-insp-state-card { display: grid; gap: 6px; justify-items: start; }
+.dd-insp-state-card[data-changed] .dd-chip-entity { border-color: var(--docdive-accent); color: var(--docdive-accent); }
 
 /* ================================================================================================
-   Variant A — Inspector dock. Two-column grid, sticky inspector, slim transport + scrubber,
-   compact density, flat 1px surfaces. Interaction emphasis: selection → dock.
+   Variant A — Dotted rail + state strip + SVG badges. The rail is the scrubber (dots = steps, filled progress);
+   a strip of per-participant cards under the player says what each box holds now; changed state also pins a
+   badge under the box in the diagram. Rhythm: player → strip → diagram. Density: airy. Emphasis: watch.
    ================================================================================================ */
-html[data-style="a"] .dd { --docdive-radius: 8px; font-size: 13.5px; }
-html[data-style="a"] .dd-page { display: grid; grid-template-columns: minmax(0, 1fr) 300px; grid-template-areas: "head inspector" "diagram inspector" "player inspector"; gap: 12px 20px; align-items: start; }
-html[data-style="a"] .dd-head { grid-area: head; }
-html[data-style="a"] .dd-diagram { grid-area: diagram; padding: 12px; border: 1px solid var(--docdive-border); border-radius: var(--docdive-radius); background: var(--docdive-surface); }
-html[data-style="a"] .dd-player { grid-area: player; padding: 8px 12px; border: 1px solid var(--docdive-border); border-radius: var(--docdive-radius); background: var(--docdive-bg); }
-html[data-style="a"] .dd-pills { display: none; }
-html[data-style="a"] .dd-sentence { font-size: 0.95em; }
-html[data-style="a"] .dd-inspector { grid-area: inspector; position: sticky; top: 16px; padding: 14px; border: 1px solid var(--docdive-border); border-radius: var(--docdive-radius); background: var(--docdive-bg); }
-html[data-style="a"] .dd-inspector[data-empty] { background: transparent; border-style: dashed; }
-html[data-style="a"] .dd-primary { justify-self: start; }
-@media (max-width: 860px) { html[data-style="a"] .dd-page { grid-template-columns: 1fr; grid-template-areas: "head" "player" "diagram" "inspector"; } html[data-style="a"] .dd-inspector { position: static; } }
+.dd-rail-row { display: flex; align-items: center; gap: 16px; }
+.dd-rail { position: relative; flex: 1; height: 36px; cursor: pointer; touch-action: none; border-radius: 999px; }
+.dd-rail-track { position: absolute; left: 0; right: 0; top: 50%; height: 4px; transform: translateY(-50%); border-radius: 999px; background: var(--docdive-border); overflow: hidden; }
+.dd-rail-fill { height: 100%; width: 0; background: var(--docdive-accent); transition: width var(--docdive-duration) ease-out; }
+.dd-marks { position: absolute; inset: 0; margin: 0; padding: 0; list-style: none; }
+.dd-marks li { position: absolute; top: 50%; transform: translate(-50%, -50%); }
+.dd-mark { display: block; width: 28px; height: 28px; padding: 0; border: 0; background: transparent; cursor: pointer; position: relative; }
+.dd-mark::before { content: ""; position: absolute; inset: 50%; width: 10px; height: 10px; transform: translate(-50%, -50%); border-radius: 999px; background: var(--docdive-surface); border: 2px solid var(--docdive-node-stroke); transition: all var(--docdive-duration); }
+/* A step that writes state carries a dot inside its mark (3:1 on the surface via node-stroke / fg-muted). */
+.dd-mark[data-has-state]::after { content: ""; position: absolute; inset: 50%; width: 4px; height: 4px; transform: translate(-50%, -50%); border-radius: 999px; background: var(--docdive-fg-muted); }
+.dd-mark:is([data-past], [aria-current])::after { background: var(--docdive-on-accent); }
+.dd-mark[data-past]::before { background: var(--docdive-accent); border-color: var(--docdive-accent); }
+.dd-mark:hover::before { transform: translate(-50%, -50%) scale(1.3); border-color: var(--docdive-accent); }
+.dd-mark[aria-current]::before { width: 16px; height: 16px; background: var(--docdive-accent); border-color: var(--docdive-surface); box-shadow: 0 0 0 2px var(--docdive-accent), 0 0 0 6px var(--docdive-accent-soft); }
+.dd-mark-demo, .dd-segs-demo { display: inline-flex; align-items: center; gap: 6px; }
+.dd-mark-demo .dd-mark { display: inline-block; }
+.dd-segs-demo .dd-seg { width: 36px; }
+.dd-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; padding-top: 12px; border-top: 1px solid var(--docdive-border); }
+.dd-state-card { display: grid; gap: 8px; align-content: start; padding: 12px; border-radius: calc(var(--docdive-radius) - 4px); background: var(--docdive-bg); border: 1px solid var(--docdive-border); transition: border-color var(--docdive-duration), box-shadow var(--docdive-duration); }
+.dd-state-card header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.dd-state-card[data-changed] { border-color: var(--docdive-accent); box-shadow: 0 0 0 3px var(--docdive-accent-soft); }
+.dd-state-text { margin: 0; font-size: 0.86em; }
+.dd-state-empty { margin: 0; grid-column: 1 / -1; }
+.dd-badges { position: absolute; inset: 20px; pointer-events: none; }
+html:not([data-style="a"]) .dd-badges { display: none; }
+.dd-badge { position: absolute; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px 3px 6px; border-radius: 999px; background: var(--docdive-surface); border: 1px solid var(--docdive-accent); color: var(--docdive-fg); box-shadow: var(--docdive-shadow); font-size: 0.78em; white-space: nowrap; animation: dd-pop var(--docdive-duration) ease-out; }
+.dd-badge-entity { font-weight: 650; color: var(--docdive-accent); }
+.dd-badge-field { font-family: var(--docdive-font-mono); }
+@keyframes dd-pop { from { opacity: 0; transform: translateX(-50%) translateY(-4px); } }
 
 /* ================================================================================================
-   Variant B — Reading flow. Single column, the step sentence is the hero, step pills as scrubber,
-   airy density, soft elevated cards, pill buttons. Interaction emphasis: read, then act.
+   Variant B — Segmented story bar + entity ledger. The bar is N flat segments (stories); hovering one captions
+   it. Under the sentence, one row per entity: where it lives now and its trail of changes across steps, future
+   steps dimmed. Rhythm: bar → sentence → ledger. Density: compact rows. Emphasis: follow the entity.
    ================================================================================================ */
-html[data-style="b"] .dd { --docdive-radius: 14px; --docdive-space: 16px; font-size: 15px; }
-html[data-style="b"] .dd-page { display: grid; gap: 16px; }
-html[data-style="b"] .dd-head { font-size: 1.05em; }
-html[data-style="b"] .dd-head [aria-current] { font-size: 1.35em; letter-spacing: -0.02em; }
-html[data-style="b"] .dd-player { padding: 16px 20px; border-radius: var(--docdive-radius); background: var(--docdive-surface); box-shadow: var(--docdive-shadow); border: 1px solid var(--docdive-border); grid-template-areas: "sentence" "pills" "transport" "through"; }
-html[data-style="b"] .dd-sentence { grid-area: sentence; font-size: 1.25em; line-height: 1.35; letter-spacing: -0.01em; }
-html[data-style="b"] .dd-pills { grid-area: pills; }
-html[data-style="b"] .dd-transport { grid-area: transport; }
-html[data-style="b"] .dd-through { grid-area: through; }
-html[data-style="b"] .dd-range { display: none; }
-html[data-style="b"] .dd-btn, html[data-style="b"] .dd select { border-radius: 999px; padding-inline: 14px; }
-html[data-style="b"] .dd-icon { width: 34px; height: 34px; padding: 0; }
-html[data-style="b"] .dd-diagram { padding: 20px; border-radius: var(--docdive-radius); background: var(--docdive-surface); border: 1px solid var(--docdive-border); }
-html[data-style="b"] .dd-inspector { padding: 20px; border-radius: var(--docdive-radius); background: var(--docdive-surface); box-shadow: var(--docdive-shadow); border: 1px solid var(--docdive-border); gap: 14px; }
-html[data-style="b"] .dd-inspector[data-empty] { box-shadow: none; background: transparent; border-style: dashed; }
-html[data-style="b"] .dd-title { font-size: 1.3em; }
-html[data-style="b"] .dd-rel { grid-template-columns: 110px 1fr; align-items: baseline; }
-html[data-style="b"] .dd-primary { justify-self: start; }
-html[data-style="b"] .dd-map { gap: 32px; }
-html[data-style="b"] .dd-tree-row { padding: 8px 0; }
+.dd-story-row { display: flex; align-items: center; gap: 14px; }
+.dd-story { flex: 1; display: grid; gap: 6px; }
+.dd-segs { display: flex; gap: 4px; height: 28px; align-items: center; cursor: pointer; touch-action: none; border-radius: 6px; }
+.dd-seg { flex: 1; height: 6px; padding: 0; border: 0; border-radius: 999px; background: color-mix(in srgb, var(--docdive-fg-muted) 55%, var(--docdive-border)); cursor: pointer; position: relative; transition: background-color var(--docdive-duration), height var(--docdive-duration); }
+.dd-seg::after { content: ""; position: absolute; inset: -11px 0; }
+.dd-seg[data-has-state]::before { content: ""; position: absolute; top: -7px; left: 50%; width: 4px; height: 4px; border-radius: 999px; background: var(--docdive-fg-muted); transform: translateX(-50%); }
+.dd-seg[data-past] { background: var(--docdive-accent); }
+.dd-seg[aria-current] { background: var(--docdive-accent); height: 10px; box-shadow: 0 0 0 3px var(--docdive-accent-soft); }
+.dd-seg:hover { background: color-mix(in srgb, var(--docdive-accent) 60%, var(--docdive-border)); }
+.dd-seg-caption { font-size: 0.86em; min-height: 1.3em; font-family: var(--docdive-font-mono); }
+.dd-ledger { display: grid; gap: 10px; padding-top: 12px; border-top: 1px solid var(--docdive-border); }
+.dd-ledger-row { display: grid; grid-template-columns: 180px 1fr; gap: 12px; align-items: start; padding: 8px 0; border-radius: calc(var(--docdive-radius) - 6px); }
+.dd-ledger-row[data-changed] .dd-chip-entity { border-color: var(--docdive-accent); color: var(--docdive-accent); }
+.dd-ledger-head { display: grid; gap: 4px; font-size: 0.9em; justify-items: start; }
+.dd-trail { display: flex; flex-wrap: wrap; gap: 6px 0; margin: 0; padding: 0; list-style: none; align-items: center; }
+.dd-trail-item { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 999px; border: 1px solid transparent; transition: opacity var(--docdive-duration), border-color var(--docdive-duration); }
+.dd-trail-item + .dd-trail-item::before { content: "→"; color: var(--docdive-fg-muted); margin-right: 6px; }
+.dd-trail-item[data-future] { color: var(--docdive-fg-muted); }
+.dd-trail-item[data-future] .dd-field { color: var(--docdive-fg-muted); }
+.dd-trail-item[data-now] { border-color: var(--docdive-accent); background: var(--docdive-accent-soft); }
+.dd-trail-item[data-now] .dd-field { background: var(--docdive-surface); }
+.dd-trail-step { width: 28px; height: 28px; border-radius: 999px; border: 1px solid var(--docdive-border); background: var(--docdive-surface); color: var(--docdive-fg-muted); font: inherit; font-size: 0.78em; cursor: pointer; }
+.dd-trail-item[data-now] .dd-trail-step, .dd-trail-item:not([data-future]) .dd-trail-step { background: var(--docdive-accent); color: var(--docdive-on-accent); border-color: var(--docdive-accent); }
+.dd-trail-owner { font-size: 0.86em; font-weight: 600; }
+@media (max-width: 720px) { .dd-ledger-row { grid-template-columns: 1fr; } }
 
 /* ================================================================================================
-   Variant C — Framed canvas. The diagram is a framed canvas with a grid texture; breadcrumb and
-   transport are toolbars inside the frame; the inspector floats over the canvas. Tight density,
-   mono IDs, keyboard hints. Interaction emphasis: explore.
+   Variant C — Swimlane timeline. One grid: columns = steps (the header row scrubs), rows = participants that
+   hold state; the cell at (participant, step) shows the state note written there. The current column is the
+   playhead; future columns dim. Timeline and state are one component. Density: dense. Emphasis: scan the matrix.
    ================================================================================================ */
-html[data-style="c"] .dd { --docdive-radius: 6px; font-size: 13px; }
-html[data-style="c"] .dd-page { position: relative; display: grid; grid-template-areas: "head" "diagram" "player"; border: 1px solid var(--docdive-border); border-radius: var(--docdive-radius); background: var(--docdive-surface); overflow: hidden; }
-html[data-style="c"] .dd-head { grid-area: head; padding: 8px 12px; border-bottom: 1px solid var(--docdive-border); background: var(--docdive-bg); font-family: var(--docdive-font-mono); font-size: 0.92em; }
-html[data-style="c"] .dd-diagram { grid-area: diagram; padding: 28px 24px; min-height: 260px; background-color: var(--docdive-surface); background-image: radial-gradient(color-mix(in srgb, var(--docdive-border) 80%, transparent) 1px, transparent 1px); background-size: 16px 16px; }
-html[data-style="c"] .dd-player { grid-area: player; padding: 8px 12px; border-top: 1px solid var(--docdive-border); background: var(--docdive-bg); grid-template-columns: auto 1fr; grid-template-areas: "transport sentence" "range range" "through through"; align-items: center; column-gap: 16px; }
-html[data-style="c"] .dd-transport { grid-area: transport; }
-html[data-style="c"] .dd-sentence { grid-area: sentence; font-size: 0.95em; }
-html[data-style="c"] .dd-sentence b { font-family: var(--docdive-font-mono); }
-html[data-style="c"] .dd-range { grid-area: range; height: 4px; }
-html[data-style="c"] .dd-through { grid-area: through; }
-html[data-style="c"] .dd-pills { display: none; }
-html[data-style="c"] .dd-transport::after { content: "← → step · Enter dive"; color: var(--docdive-fg-muted); font-size: 0.85em; font-family: var(--docdive-font-mono); margin-left: 6px; }
-html[data-style="c"] .dd-inspector { position: absolute; top: 48px; right: 12px; width: 280px; max-height: calc(100% - 110px); overflow: auto; padding: 12px; border: 1px solid var(--docdive-border); border-radius: var(--docdive-radius); background: color-mix(in srgb, var(--docdive-surface) 92%, transparent); backdrop-filter: blur(8px); box-shadow: var(--docdive-shadow); }
-html[data-style="c"] .dd-inspector[data-empty] { position: static; width: auto; max-height: none; background: transparent; border: 0; box-shadow: none; backdrop-filter: none; padding: 0 12px 10px; grid-area: head; justify-self: end; align-self: center; }
-html[data-style="c"] .dd-title, html[data-style="c"] .dd-chip, html[data-style="c"] .dd-tree-name, html[data-style="c"] .dd-scn-name { font-family: var(--docdive-font-mono); }
-html[data-style="c"] .dd-chip { border-radius: 4px; }
-html[data-style="c"] .dd-btn { border-radius: 4px; }
-html[data-style="c"] .dd-primary { justify-self: stretch; justify-content: center; }
-html[data-style="c"] .dd-map { border: 1px solid var(--docdive-border); border-radius: var(--docdive-radius); padding: 16px; background: var(--docdive-bg); }
-@media (max-width: 860px) { html[data-style="c"] .dd-inspector { position: static; width: auto; max-height: none; border-left: 0; border-right: 0; border-radius: 0; grid-area: player; margin-top: 44px; } html[data-style="c"] .dd-page { grid-template-areas: "head" "diagram" "player" "inspector"; } html[data-style="c"] .dd-inspector:not([data-empty]) { grid-area: inspector; margin-top: 0; } }
+.dd-lanes-wrap { margin: -4px; padding: 4px; min-width: 0; }
+.dd-lanes { display: grid; grid-template-columns: minmax(120px, max-content) repeat(var(--cols), minmax(120px, 1fr)); gap: 0; overflow-x: auto; border-radius: 6px; outline-offset: 2px; }
+.dd-lane-corner { display: flex; align-items: center; gap: 10px; padding: 0 8px 8px 0; position: sticky; left: 0; background: var(--docdive-surface); z-index: 3; }
+.dd-lane-col { font: inherit; display: grid; gap: 2px; text-align: left; padding: 6px 10px 8px; border: 0; border-bottom: 3px solid var(--docdive-border); background: transparent; color: var(--docdive-fg-muted); cursor: pointer; min-width: 0; transition: border-color var(--docdive-duration), background-color var(--docdive-duration); }
+.dd-lane-col:hover { background: var(--docdive-accent-soft); }
+.dd-lane-col[data-past] { border-bottom-color: var(--docdive-accent); }
+.dd-lane-col[aria-current] { border-bottom-color: var(--docdive-accent); color: var(--docdive-fg); background: var(--docdive-accent-soft); border-radius: 8px 8px 0 0; }
+.dd-lane-no { font-weight: 650; font-variant-numeric: tabular-nums; font-size: 0.86em; }
+.dd-lane-msg { font-size: 0.78em; font-family: var(--docdive-font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.dd-lane-name { display: flex; align-items: center; padding: 8px 12px 8px 0; border-top: 1px solid var(--docdive-border); position: sticky; left: 0; background: var(--docdive-surface); z-index: 3; font-size: 0.93em; }
+.dd-lane-cell { position: relative; min-height: 44px; padding: 6px 8px; border-top: 1px solid var(--docdive-border); border-left: 1px dashed color-mix(in srgb, var(--docdive-border) 70%, transparent); display: grid; gap: 4px; align-content: start; cursor: pointer; transition: opacity var(--docdive-duration), background-color var(--docdive-duration); }
+.dd-lane-cell::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid var(--docdive-border); z-index: 0; opacity: 0.6; }
+.dd-lane-cell[data-active]::before { border-top: 2px solid var(--docdive-accent); opacity: 0.5; }
+.dd-lane-cell[aria-current] { background: var(--docdive-accent-soft); }
+.dd-lane-cell[data-future] { opacity: 0.45; }
+.dd-lane-note { position: relative; z-index: 1; max-width: 190px; display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 6px; border-radius: 8px; background: var(--docdive-surface); border: 1px solid var(--docdive-border); align-items: center; }
+.dd-lane-cell[aria-current] .dd-lane-note { border-color: var(--docdive-accent); box-shadow: 0 0 0 2px var(--docdive-accent-soft); }
+.dd-lane-cell[aria-current] .dd-field { background: var(--docdive-accent-soft); color: var(--docdive-accent); }
+html[data-style="c"] .dd-player.v-c { padding: 14px 16px 16px; }
