@@ -34,3 +34,6 @@ Markdown file, reload the page to see the new data (no auto-reload). A build err
 good data is kept. `docusaurus build` is unchanged.
 
 Peers: `@docusaurus/core` and `@docusaurus/theme-mermaid` ^3.10, `mermaid` >=11.6 <13. Requires Node >= 22.12. MIT.
+
+Overview page: write `<docdive-map></docdive-map>` in any Markdown page to show the element tree and the flows, each
+linking to its page. The element script is loaded on every page, so no extra setup is needed.

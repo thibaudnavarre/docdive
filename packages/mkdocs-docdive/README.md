@@ -31,4 +31,7 @@ Selecting a node can show a **Source** link that opens the repo page at the Mark
 (or first mentioned). The URL comes from MkDocs' `repo_url` + `edit_uri`: a GitHub `/edit/` or GitLab `/-/edit/` URL is
 rewritten to its `/blob/` view with `#L<line>`. Other hosts need `source_url`. With neither, the link is hidden.
 
+Overview page: write `<docdive-map></docdive-map>` in any Markdown page to show the element tree and the flows, each
+linking to its page. The element script is loaded on every page, so no extra setup is needed.
+
 Supports `mkdocs>=1.6,<2` and Python >= 3.11. MkDocs 2.0 has no plugin system and is not supported. MIT.

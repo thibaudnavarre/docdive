@@ -6,7 +6,8 @@ own diagram, and play a feature's flow as an animation across every diagram it c
 Three parts:
 
 1. **The model**: plain Mermaid plus YAML frontmatter, so docs keep rendering on GitHub. Remove docdive and nothing breaks.
-2. **The viewer**: the `<docdive-diagram>` element, wired into Docusaurus and MkDocs.
+2. **The viewer**: the `<docdive-diagram>` element (inspector, scenario player, deep dive) and the `<docdive-map>`
+   overview, wired into Docusaurus and MkDocs.
 3. **The skill**: [`docdive-convert`](packages/docdive/skills/docdive-convert/SKILL.md) has a coding agent convert existing docs into the model.
 
 ## Packages
@@ -37,6 +38,9 @@ flowchart LR
 A doc with `id: OrderService` and `parent: system` is the zoom into that box (`src` and `description` are optional).
 A doc with `kind: scenario` and a `sequenceDiagram` whose participants are element IDs is a flow the viewer animates.
 Full rules: [`conventions.md`](packages/docdive/skills/docdive-convert/references/conventions.md).
+
+Any page can show the whole system with `<docdive-map></docdive-map>`: the element tree and the flows, each linking to
+its page.
 
 ## Quick start
 
