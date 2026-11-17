@@ -14,6 +14,7 @@ import {
   entityTrail,
   hasSeveralFences,
   hasState,
+  ownScenario,
   panelFields,
   relevantHolder,
   sourceHref,
@@ -543,7 +544,9 @@ export class DocdiveDiagram extends HTMLElement {
     const index = this.index;
     const diagram = this.diagram;
     if (!index || !diagram) return;
-    const ids = Object.keys(index.scenarios).filter((id) => touchesDiagram(index, id, diagram));
+    // A sequence fence animates only the scenario it draws; other scenarios that share its participants stay out.
+    const own = ownScenario(index, diagram);
+    const ids = own ? [own] : Object.keys(index.scenarios).filter((id) => touchesDiagram(index, id, diagram));
     if (ids.length === 0) {
       this.traceBar.remove();
       this.scenario = "";

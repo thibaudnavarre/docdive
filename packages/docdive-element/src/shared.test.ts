@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   annotateFlowchart,
   annotateSequence,
+  ownScenario,
   breadcrumb,
   diagramLabel,
   divable,
@@ -239,6 +240,12 @@ describe("annotateSequence", () => {
   it("reports a label mismatch on the fence's own scenario", () => {
     const { root } = svg(["first 0", "wrong"]);
     expect(annotateSequence(root, seq("ops.md#0", [["A", "B"], ["B", "C"]]), index)).toMatch(/unreliable/);
+  });
+
+  it("names the scenario a fence draws, not another one sharing its participants", () => {
+    expect(ownScenario(index, seq("ops.md#1", [["C", "D"]]))).toBe("ops#1");
+    expect(ownScenario(index, seq("ops.md#0", [["A", "B"], ["B", "C"]]))).toBe("ops#0");
+    expect(ownScenario(index, seq("other.md#0", [["C", "D"]]))).toBeUndefined();
   });
 });
 

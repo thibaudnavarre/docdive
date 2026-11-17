@@ -296,13 +296,18 @@ export const hasSeveralFences = (index: Index, doc: string): boolean =>
   index.diagrams.filter((d) => d.id.startsWith(`${doc}#`)).length > 1;
 
 // The scenario a sequence fence draws: same doc, and its steps are exactly the fence's messages.
-const scenarioOf = (index: Index, diagram: DiagramEntry) =>
-  Object.values(index.scenarios).find(
-    (sc) =>
+const scenarioOf = (index: Index, diagram: DiagramEntry) => index.scenarios[ownScenario(index, diagram) ?? ""];
+
+// Id of that scenario; undefined for flowcharts and unmatched fences.
+export const ownScenario = (index: Index, diagram: DiagramEntry): string | undefined =>
+  Object.keys(index.scenarios).find((id) => {
+    const sc = index.scenarios[id] as Index["scenarios"][string];
+    return (
       diagram.id.startsWith(`${sc.doc}#`) &&
       sc.steps.length === diagram.edges.length &&
-      sc.steps.every((st, i) => st.from === diagram.edges[i]?.[0] && st.to === diagram.edges[i]?.[1]),
-  );
+      sc.steps.every((st, i) => st.from === diagram.edges[i]?.[0] && st.to === diagram.edges[i]?.[1])
+    );
+  });
 
 // Mermaid sequence SVG has no per-message ids: each message is a `text.messageText` followed by a
 // `[class^=messageLine]` element, both in source order. Mapping is by DOM order, checked against step labels.
