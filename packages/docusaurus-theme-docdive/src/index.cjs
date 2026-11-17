@@ -13,9 +13,11 @@ let watcherStarted = false;
  *
  * Options (both optional, both win over the docs `editUrl`): `sourceUrl`, click-to-source template with `{path}` =
  * doc path relative to the docs dir and `{line}`; `srcUrl`, template with `{path}` = repo-root-relative path, for
- * the `src:` / `entities:` links.
+ * the `src:` / `entities:` links. `root`: repo root the `src:` / `entities:` paths resolve against, so their files are
+ * copied into the site and shown inline (default: the site dir).
  */
 module.exports = function docdiveTheme(context, options = {}) {
+  const repoRoot = resolve(context.siteDir, options.root ?? ".");
   let docsDir;
   let docMap = {};
   const devDir = join(context.generatedFilesDir, "docdive");
@@ -58,7 +60,7 @@ module.exports = function docdiveTheme(context, options = {}) {
           onListening() {
             if (watcherStarted || !docsDir) return;
             watcherStarted = true;
-            const child = spawn(process.execPath, [docdiveCli, "watch", docsDir, "--out", devDir], {
+            const child = spawn(process.execPath, [docdiveCli, "watch", docsDir, "--out", devDir, "--root", repoRoot], {
               stdio: "inherit",
             });
             process.on("exit", () => child.kill());
@@ -70,7 +72,7 @@ module.exports = function docdiveTheme(context, options = {}) {
     async postBuild({ outDir }) {
       if (!docsDir) throw new Error("docusaurus-theme-docdive: the docs plugin has no content to index");
       const dest = join(outDir, "docdive");
-      execFileSync(process.execPath, [docdiveCli, "build", docsDir, "--out", dest], { stdio: "inherit" });
+      execFileSync(process.execPath, [docdiveCli, "build", docsDir, "--out", dest, "--root", repoRoot], { stdio: "inherit" });
       writeMap(dest);
     },
   };

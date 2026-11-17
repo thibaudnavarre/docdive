@@ -21,9 +21,10 @@ export const EXIT_USAGE = 2;
 export const USAGE = `usage: docdive <command> [options]
 
 commands:
-  build <folder> --out <dir>         write index.json, contexts.json and the <docdive-diagram> assets
-  watch <folder> --out <dir>         build, then rebuild index.json and contexts.json on every Markdown change
-  lint <folder> [--root <repo>] [--json]   check the model; src paths resolve against --root (default: .)
+  build <folder> --out <dir> [--root <repo>]   write index.json, contexts.json, the <docdive-diagram> assets and
+                                               the src/entities files (resolved against --root, default: .)
+  watch <folder> --out <dir> [--root <repo>]   build, then rebuild index.json and contexts.json on every Markdown change
+  lint <folder> [--root <repo>] [--json]       check the model; src paths resolve against --root (default: .)
 
 options:
   -h, --help       show this help
@@ -61,12 +62,32 @@ function parse<const T extends ParseArgsOptionsConfig>(args: string[], options: 
   }
 }
 
-/** Resolves `<folder> --out <dir>` for build/watch. */
-function target(command: string, rest: string[]): { root: string; out: string } {
-  const { values, pos } = parse(rest, { out: { type: "string" } }, 1);
+/** Resolves `<folder> --out <dir> [--root <repo>]` for build/watch. */
+function target(command: string, rest: string[]): { root: string; out: string; repo: string } {
+  const { values, pos } = parse(rest, { out: { type: "string" }, root: { type: "string" } }, 1);
   if (!pos[0]) throw new UsageError(`${command}: missing <folder>`);
   if (typeof values.out !== "string") throw new UsageError(`${command}: missing --out <dir>`);
-  return { root: requireFolder(pos[0]), out: resolve(values.out) };
+  return { root: requireFolder(pos[0]), out: resolve(values.out), repo: resolve(typeof values.root === "string" ? values.root : ".") };
+}
+
+/** Files only (a directory stays a repo link), inside the repo, at most this size: code the viewer shows inline. */
+const MAX_INLINE_FILE_BYTES = 512 * 1024;
+
+/** Copies every existing `src`/`entities` file under `<dir>/src/<path>` and returns the paths copied, sorted. */
+function copySources(index: Index, repo: string, dir: string): string[] {
+  const wanted = new Set([...Object.values(index.elements), ...Object.values(index.entities)].flatMap((e) => e.src));
+  const copied: string[] = [];
+  for (const path of wanted) {
+    const abs = resolve(repo, path);
+    if (relative(repo, abs).startsWith("..") || !existsSync(abs)) continue;
+    const stat = statSync(abs);
+    if (!stat.isFile() || stat.size > MAX_INLINE_FILE_BYTES) continue;
+    const dest = join(dir, "src", path);
+    mkdirSync(dirname(dest), { recursive: true });
+    cpSync(abs, dest);
+    copied.push(path);
+  }
+  return copied.sort();
 }
 
 function summarise(index: Index): string {
@@ -86,8 +107,9 @@ function writeAtomic(path: string, content: string): void {
   renameSync(tmp, path);
 }
 
-function writeOutputs(index: Index, docs: Doc[], dir: string): void {
+function writeOutputs(index: Index, docs: Doc[], dir: string, repo: string): void {
   mkdirSync(dir, { recursive: true });
+  index.files = copySources(index, repo, dir);
   writeAtomic(join(dir, "index.json"), JSON.stringify(sortKeys(index), null, 2) + "\n");
   writeAtomic(join(dir, "contexts.json"), JSON.stringify(renderAllContexts(index, docs), null, 2) + "\n");
 }
@@ -105,13 +127,13 @@ function requireFolder(path: string): string {
 const WATCH_DEBOUNCE_MS = 100;
 
 function watchDocs(rest: string[], io: Io): Promise<number> {
-  const { root, out: dir } = target("watch", rest);
+  const { root, out: dir, repo } = target("watch", rest);
   const folder = relative(process.cwd(), root) || ".";
 
   const rebuild = (): Index => {
     const docs = loadDocs(root);
     const index = buildModel(docs);
-    writeOutputs(index, docs, dir);
+    writeOutputs(index, docs, dir, repo);
     return index;
   };
   const stamp = () => new Date().toLocaleTimeString("en-GB");
@@ -170,10 +192,10 @@ function watchDocs(rest: string[], io: Io): Promise<number> {
 
 function execute(command: string, rest: string[], io: Io): number | Promise<number> {
   if (command === "build") {
-    const { root, out } = target("build", rest);
+    const { root, out, repo } = target("build", rest);
     const docs = loadDocs(root);
     const index = buildModel(docs);
-    writeOutputs(index, docs, out);
+    writeOutputs(index, docs, out, repo);
     copyAssets(out);
     io.err(summarise(index));
     return EXIT_OK;

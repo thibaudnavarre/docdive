@@ -212,6 +212,15 @@ for (const site of SITES) {
       await expect(order.locator('a[data-docdive-entity="Order"]')).toHaveAttribute("href", "https://github.com/thibaudnavarre/docdive/blob/main/src/orders/order.ts");
       await expect(strip.locator('[data-docdive-trail="Payment"] a')).toHaveCount(0);
       await expect(strip.locator('[data-docdive-trail="Payment"] .chip.entity')).toHaveText("Payment");
+      // The sites build with `root: fixtures/toy`, so the file is copied and a plain click shows it in the page.
+      await order.locator('a[data-docdive-entity="Order"]').click();
+      const code = page.locator(q("[data-docdive-code]"));
+      await expect(code).toBeVisible();
+      await expect(code.locator("header code")).toHaveText("src/orders/order.ts");
+      await expect(code.locator("[data-docdive-code-body]")).toContainText("export interface Order");
+      await expect(page).toHaveURL(/system/);
+      await code.locator("[data-docdive-close]").click();
+      await expect(code).toBeHidden();
       // A child page shows only its own state.
       await open(page, "architecture/orders-db.md", `?docdive-scenario=${SCENARIO}&docdive-step=6`);
       await expect(page.locator(q("[data-docdive-state-card]"))).toHaveCount(1);

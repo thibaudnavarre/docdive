@@ -89,17 +89,18 @@ const STYLE = `
 ${TOKEN_STYLE}
 :host { container-type: inline-size; }
 [hidden] { display: none !important; }
-[data-docdive-layout] { display: grid; gap: var(--docdive-space); grid-template-columns: minmax(0, 1fr); grid-template-areas: "crumbs" "trace" "error" "diagram" "panel"; }
+[data-docdive-layout] { display: grid; gap: var(--docdive-space); grid-template-columns: minmax(0, 1fr); grid-template-areas: "crumbs" "trace" "error" "diagram" "panel" "code"; }
 [data-docdive-breadcrumb] { grid-area: crumbs; }
 [data-docdive-trace] { grid-area: trace; }
 [data-docdive-error] { grid-area: error; }
 [data-docdive-diagram] { grid-area: diagram; }
 [data-docdive-panel] { grid-area: panel; }
+[data-docdive-code] { grid-area: code; }
 [data-docdive-error]:empty, [data-docdive-panel]:empty { display: none; }
 [data-docdive-error] { color: var(--docdive-error); font-size: .9em; }
 /* Dock: a selected inspector sits beside the diagram once the element is wide enough. */
 @container (min-width: 960px) {
-  [data-docdive-layout][data-docdive-docked] { grid-template-columns: minmax(0, 1fr) 320px; grid-template-areas: "crumbs crumbs" "trace trace" "error error" "diagram panel"; align-items: start; }
+  [data-docdive-layout][data-docdive-docked] { grid-template-columns: minmax(0, 1fr) 320px; grid-template-areas: "crumbs crumbs" "trace trace" "error error" "diagram panel" "code code"; align-items: start; }
   [data-docdive-layout][data-docdive-docked] [data-docdive-panel] { position: sticky; top: var(--docdive-space); }
 }
 .card { padding: calc(var(--docdive-space) * 1.25); background: var(--docdive-surface); border: 1px solid var(--docdive-border); border-radius: var(--docdive-radius); box-shadow: var(--docdive-shadow); }
@@ -172,8 +173,10 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .owner { font: inherit; font-weight: 650; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; border-radius: 4px; }
 .owner:hover { color: var(--docdive-accent); text-decoration: underline; }
 .chip.entity { background: transparent; border: 1px solid var(--docdive-border); font-weight: 650; font-size: .8em; }
-a.chip.entity::after { content: "\\2197"; margin-left: .35em; font-size: .85em; color: var(--docdive-fg-muted); }
-a.chip.entity:hover::after { color: inherit; }
+.chip.entity:is(a, button)::after { content: "\\2197"; margin-left: .35em; font-size: .85em; color: var(--docdive-fg-muted); }
+.chip.entity[data-docdive-inline]::after { content: "</>"; font-family: var(--docdive-font-mono); }
+.chip.entity:is(a, button):hover::after { color: inherit; }
+button.chip.entity { padding: .1em .7em; border-radius: 999px; }
 .fields { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: flex-start; }
 [data-docdive-field-chip] { display: inline-flex; align-items: baseline; gap: 4px; padding: 1px 8px; border-radius: 6px; background: var(--docdive-surface-2); font-family: var(--docdive-font-mono); font-size: .82em; line-height: 1.6; }
 [data-docdive-field-chip] .k { color: var(--docdive-fg-muted); }
@@ -208,8 +211,16 @@ a.chip.entity:hover::after { color: inherit; }
 [data-docdive-field="description"] { color: var(--docdive-fg-muted); }
 .chips { display: flex; flex-wrap: wrap; gap: .3em; }
 [data-docdive-field="src"] code { font-family: var(--docdive-font-mono); font-size: .92em; }
-[data-docdive-field="src"] a { color: var(--docdive-accent); text-decoration: none; }
-[data-docdive-field="src"] a:hover { text-decoration: underline; }
+[data-docdive-field="src"] :is(a, button) { color: var(--docdive-accent); text-decoration: none; background: none; border: 0; padding: 0; border-radius: 0; font-size: inherit; }
+[data-docdive-field="src"] :is(a, button):hover { text-decoration: underline; background: none; }
+/* Inline code: the file a src or entity chip points at, shown under the diagram. */
+[data-docdive-code] { display: grid; gap: .6em; }
+[data-docdive-code] header { display: flex; align-items: center; gap: .6em; }
+[data-docdive-code] header code { font-family: var(--docdive-font-mono); font-weight: 650; min-width: 0; overflow-wrap: anywhere; }
+[data-docdive-code] header a { color: var(--docdive-accent); text-decoration: none; font-size: .9em; white-space: nowrap; }
+[data-docdive-code] header a:hover { text-decoration: underline; }
+[data-docdive-code] header [data-docdive-close] { margin-left: auto; }
+[data-docdive-code] pre { margin: 0; padding: .8em 1em; max-height: 60vh; overflow: auto; border-radius: calc(var(--docdive-radius) - 4px); background: var(--docdive-bg); border: 1px solid var(--docdive-border); font-family: var(--docdive-font-mono); font-size: .82em; line-height: 1.5; tab-size: 2; }
 .actions { display: flex; flex-wrap: wrap; gap: .4em; align-items: center; }
 .actions a { color: var(--docdive-accent); text-decoration: none; }
 .actions a:hover { text-decoration: underline; }
@@ -301,6 +312,7 @@ export class DocdiveDiagram extends HTMLElement {
   private zoomReadout = el("span", { "data-docdive-zoom-level": "", class: "muted" });
   private errorHost = el("div", { "data-docdive-error": "" });
   private panel = el("aside", { "data-docdive-panel": "", part: "panel", "aria-label": "Element details" });
+  private codeCard = el("section", { "data-docdive-code": "", part: "code", class: "card", "aria-label": "Source file", hidden: "" });
   private index?: Index;
   private map: DocMap = {};
   private contexts?: Record<string, string>;
@@ -339,7 +351,7 @@ export class DocdiveDiagram extends HTMLElement {
 
   constructor() {
     super();
-    this.layout.append(this.errorHost, this.host, this.panel);
+    this.layout.append(this.errorHost, this.host, this.panel, this.codeCard);
     this.root.append(el("style", {}, STYLE), this.layout);
     this.viewport.addEventListener("click", (ev) => this.onSelect(ev));
     this.viewport.addEventListener("keydown", (ev) => {
@@ -676,13 +688,54 @@ export class DocdiveDiagram extends HTMLElement {
     return repoHref(srcUrl, editUrl, path);
   }
 
-  // Entity name chip; a link to its code when `entities:` declares it and the repo URL resolves.
-  // shortcut: links the first src path only, add an inspector row when an entity needs several.
+  // A chip for a repo path: opens the file inline when the build copied it, else links to the repo, else `fallback`.
+  // Modified clicks (⌘, ctrl, shift, middle) keep the link's native behaviour.
+  private codeChip(path: string, attrs: Record<string, string>, fallback: () => HTMLElement, text?: string): HTMLElement {
+    const href = this.repoUrl(path);
+    const inline = this.index?.files?.includes(path) ?? false;
+    if (!href && !inline) return fallback();
+    const node: HTMLElement = href ? el("a", { ...attrs, href, target: "_blank", rel: "noopener" }) : el("button", { ...attrs, type: "button" });
+    if (text !== undefined) node.textContent = text;
+    if (inline) {
+      node.setAttribute("data-docdive-inline", path);
+      node.addEventListener("click", (ev: MouseEvent) => {
+        if (ev.button !== 0 || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+        ev.preventDefault();
+        void this.openCode(path, href);
+      });
+    }
+    return node;
+  }
+
+  // Entity name chip; opens or links to its code when `entities:` declares it.
+  // shortcut: uses the first src path only, add an inspector row when an entity needs several.
   private entityChip(name: string): HTMLElement {
     const src = this.index?.entities?.[name]?.src ?? [];
-    const href = src.length > 0 ? this.repoUrl(src[0]!) : null;
-    if (!href) return el("span", { class: "chip entity" }, name);
-    return el("a", { class: "chip entity", "data-docdive-entity": name, href, target: "_blank", rel: "noopener", title: src.join("\n") }, name);
+    const attrs = { class: "chip entity", "data-docdive-entity": name, title: src.join("\n") };
+    if (src.length === 0) return el("span", { class: "chip entity" }, name);
+    return this.codeChip(src[0]!, attrs, () => el("span", { class: "chip entity" }, name), name);
+  }
+
+  // Shows a repo file (copied by `docdive build --root`) in the code card under the diagram.
+  private async openCode(path: string, href: string | null): Promise<void> {
+    const header = el("header");
+    header.append(el("code", {}, path));
+    if (href) header.append(el("a", { href, target: "_blank", rel: "noopener" }, "Open in repo \u2197"));
+    const close = el("button", { "data-docdive-close": "", class: "icon", "aria-label": "Close", title: "Close" }, "\u00D7");
+    close.addEventListener("click", () => this.codeCard.setAttribute("hidden", ""));
+    header.append(close);
+    const pre = el("pre", { "data-docdive-code-body": "" });
+    pre.append(el("code", {}, "Loading\u2026"));
+    this.codeCard.replaceChildren(header, pre);
+    this.codeCard.removeAttribute("hidden");
+    this.codeCard.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    try {
+      const res = await fetch(new URL(`src/${path}`, here).href);
+      if (!res.ok) throw new Error(`${res.status}`);
+      pre.firstElementChild!.textContent = await res.text();
+    } catch (e) {
+      pre.firstElementChild!.textContent = `Could not load ${path} (${(e as Error).message})`;
+    }
   }
 
   // Participant name as a button that selects it when this diagram draws it, plain text otherwise.
@@ -946,11 +999,9 @@ export class DocdiveDiagram extends HTMLElement {
       const list = el("div", { class: "chips" });
       list.append(
         ...src.map((p) => {
-          const href = this.repoUrl(p);
-          if (!href) return el("code", { "data-docdive-value": "" }, p);
-          const a = el("a", { "data-docdive-value": "", href, target: "_blank", rel: "noopener" });
-          a.append(el("code", {}, p));
-          return a;
+          const chip = this.codeChip(p, { "data-docdive-value": "" }, () => el("code", { "data-docdive-value": "" }, p));
+          if (chip.tagName !== "CODE") chip.append(el("code", {}, p));
+          return chip;
         }),
       );
       row.append(el("span", { class: "label" }, "Source"), list);

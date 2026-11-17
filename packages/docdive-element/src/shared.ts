@@ -29,6 +29,8 @@ export interface Index {
   elements: Record<string, ElementEntry>;
   /** State entities declared in frontmatter `entities:`, with their repo paths. */
   entities?: Record<string, { src: string[] }>;
+  /** Repo files `docdive build --root` copied under `src/` next to the index, shown inline by the viewer. */
+  files?: string[];
   scenarios: Record<string, { doc: string; steps: { from: string; to: string; label: string; isReturn: boolean; notes?: StateNote[] }[]; initial?: StateNote[] }>;
 }
 

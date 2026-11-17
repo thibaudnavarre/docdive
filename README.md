@@ -39,8 +39,9 @@ A doc with `id: OrderService` and `parent: system` is the zoom into that box (`s
 A doc with `kind: scenario` and a `sequenceDiagram` whose participants are element IDs is a flow the viewer animates.
 A `Note over OrdersDB: Order id=42 status=paid` after a message is the state that participant holds at that step: the
 viewer shows it under the player and in the inspector, step by step, and renders it as a plain note everywhere else.
-`src` paths and `entities: { Order: [src/orders/order.ts] }` link boxes and entities to their code (from the site's
-edit URL on GitHub/GitLab, or an adapter `srcUrl` template).
+`src` paths and `entities: { Order: [src/orders/order.ts] }` link boxes and entities to their code: the build copies
+the files it finds under the repo root into the site, so a click shows the file right in the page; otherwise the chip
+links to the repo (from the site's edit URL on GitHub/GitLab, or an adapter `srcUrl` template).
 Full rules: [`conventions.md`](packages/docdive/skills/docdive-convert/references/conventions.md).
 
 Any page can show the whole system with `<docdive-map></docdive-map>`: the element tree and the flows, each linking to
@@ -88,7 +89,7 @@ plugins:
 
 ```bash
 npx docdive lint docs --root .                # model errors, exit 1 when any (--json for warnings)
-npx docdive build docs --out build/docdive    # index.json, contexts.json and the element assets
+npx docdive build docs --out build/docdive    # index.json, contexts.json, the element assets and the src/entities files (--root .)
 ```
 
 Both adapters run `docdive build` after the site build and write into `<site>/docdive/`. Removing the theme or plugin

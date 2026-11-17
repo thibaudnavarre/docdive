@@ -28,12 +28,14 @@ Options:
   e.g. `https://git.example.com/org/repo/src/main/docs/{path}#L{line}`. Wins over `edit_uri` (optional).
 - `src_url`: template for the panel's `src` paths and the state entities declared with `entities:`, with `{path}`
   (repo-root-relative), e.g. `https://git.example.com/org/repo/src/main/{path}`. Wins over `edit_uri` (optional).
+- `root`: repo root the `src` / `entities` paths resolve against, relative to `mkdocs.yml` (default `.`).
 
 Selecting a node can show a **Source** link that opens the repo page at the Markdown line where the node is declared
 (or first mentioned). The URL comes from MkDocs' `repo_url` + `edit_uri`: a GitHub `/edit/` or GitLab `/-/edit/` URL is
 rewritten to its `/blob/` view with `#L<line>`. Other hosts need `source_url`. With neither, the link is hidden.
 The same edit URL turns `src` paths and entities into repo links (`…/blob/main/<path>`); other hosts, or a branch
-name containing `/`, need `src_url`.
+name containing `/`, need `src_url`. Files that exist under the repo root (`root`) are copied into `<site>/docdive/src/`
+and a plain click shows them in the page; ⌘/ctrl-click still opens the repo. Directories only link.
 
 Overview page: write `<docdive-map></docdive-map>` in any Markdown page to show the element tree and the flows, each
 linking to its page. The element script is loaded on every page, so no extra setup is needed.

@@ -8,7 +8,8 @@ module.exports = {
   onBrokenLinks: "warn",
   markdown: { mermaid: true },
   // Order matters: the docdive theme must come after theme-mermaid so @theme-init/Mermaid points at it.
-  themes: ["@docusaurus/theme-mermaid", "docusaurus-theme-docdive"],
+  // `root`: the toy fixture is its own "repo", so its `src/` files are copied into the site and shown inline.
+  themes: ["@docusaurus/theme-mermaid", ["docusaurus-theme-docdive", { root: "../../fixtures/toy" }]],
   presets: [
     [
       "classic",

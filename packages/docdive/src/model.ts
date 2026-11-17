@@ -45,6 +45,8 @@ export interface Index {
   diagrams: Diagram[];
   scenarios: Record<string, Scenario>;
   diagnostics: Diagnostic[];
+  /** Set by `build`: `src`/`entities` files copied under `<out>/src/`, so the viewer can show them inline. */
+  files?: string[];
 }
 
 const isFlowchart = (type: string) => /^(flowchart|graph)(-elk)?$/.test(type);

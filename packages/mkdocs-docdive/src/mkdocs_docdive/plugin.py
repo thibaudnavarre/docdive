@@ -29,6 +29,9 @@ class DocdiveConfig(base.Config):
     source_url = c.Optional(c.Type(str))
     # Repo URL template with `{path}` (repo-root-relative) for `src:` / `entities:` links; wins over `edit_uri`.
     src_url = c.Optional(c.Type(str))
+    # Repo root the `src:` / `entities:` paths resolve against; their files are copied into the site and shown
+    # inline. Relative to the mkdocs.yml directory (default: that directory).
+    root = c.Type(str, default=".")
 
 
 class DocdivePlugin(BasePlugin[DocdiveConfig]):
@@ -62,7 +65,8 @@ class DocdivePlugin(BasePlugin[DocdiveConfig]):
         executable = shutil.which(command[0])
         if executable is None:
             raise PluginError(f"docdive: cannot run `{command[0]}`; Node.js >= 22.12 is required at build time")
-        args = [executable, *command[1:], "build", str(config.docs_dir), "--out", str(dest)]
+        repo_root = Path(config.config_file_path).parent / self.config.root
+        args = [executable, *command[1:], "build", str(config.docs_dir), "--out", str(dest), "--root", str(repo_root)]
         try:
             subprocess.run(args, check=True)
         except subprocess.CalledProcessError as error:

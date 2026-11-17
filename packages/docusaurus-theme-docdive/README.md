@@ -29,6 +29,8 @@ rewritten to its `/blob/` view with `#L<line>`. Other hosts need `sourceUrl`. Wi
 The same edit URL turns the panel's `src` paths and the state entities declared with `entities:` into links to the
 repo (`https://github.com/org/repo/blob/main/<path>`). Other hosts, or a branch name containing `/`, need the theme
 option `srcUrl`: a template with `{path}` (repo-root-relative), e.g. `https://git.example.com/org/repo/src/main/{path}`.
+Files that exist under the repo root (theme option `root`, relative to the site dir, default `.`) are copied into
+`<site>/docdive/src/` and a plain click shows them in the page; ⌘/ctrl-click still opens the repo. Directories only link.
 
 ## Dev mode
 

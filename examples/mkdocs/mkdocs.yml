@@ -26,3 +26,5 @@ plugins:
   - docdive:
       # Run the workspace CLI; published sites use the default `npx --yes docdive@<version>`.
       command: node ../../packages/docdive/dist/cli.js
+      # The toy fixture is its own "repo": its `src/` files are copied into the site and shown inline.
+      root: ../../fixtures/toy

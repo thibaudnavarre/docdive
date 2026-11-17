@@ -80,6 +80,24 @@ describe("build", () => {
     const contexts = JSON.parse(readFileSync(join(out, "contexts.json"), "utf8")) as Record<string, string>;
     expect(contexts.A).toContain("# Context: A");
   });
+
+  it("copies the src and entities files found under --root, skipping directories, missing and outside paths", () => {
+    const repo = tmp();
+    mkdirSync(join(repo, "docs"));
+    mkdirSync(join(repo, "src", "orders"), { recursive: true });
+    writeFileSync(join(repo, "src", "orders", "order.ts"), "export type Order = { id: number };\n");
+    writeFileSync(join(repo, "src", "orders", "service.ts"), "");
+    writeFileSync(
+      join(repo, "docs", "a.md"),
+      "---\nid: A\nsrc: [src/orders/, src/orders/service.ts, src/nope.ts, ../outside.ts]\nentities:\n  Order: [src/orders/order.ts]\n---\n```mermaid\nflowchart LR\n  Alpha --> Beta\n```\n",
+    );
+    const out = join(repo, "dist");
+    expect(exec(["build", join(repo, "docs"), "--out", out, "--root", repo]).code).toBe(EXIT_OK);
+    const index = JSON.parse(readFileSync(join(out, "index.json"), "utf8")) as { files: string[] };
+    expect(index.files).toEqual(["src/orders/order.ts", "src/orders/service.ts"]);
+    expect(readFileSync(join(out, "src", "src", "orders", "order.ts"), "utf8")).toContain("Order");
+    expect(existsSync(join(out, "src", "src", "nope.ts"))).toBe(false);
+  });
 });
 
 describe("lint", () => {
