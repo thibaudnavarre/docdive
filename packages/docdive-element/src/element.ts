@@ -172,6 +172,8 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .owner { font: inherit; font-weight: 650; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; border-radius: 4px; }
 .owner:hover { color: var(--docdive-accent); text-decoration: underline; }
 .chip.entity { background: transparent; border: 1px solid var(--docdive-border); font-weight: 650; font-size: .8em; }
+a.chip.entity::after { content: "\\2197"; margin-left: .35em; font-size: .85em; color: var(--docdive-fg-muted); }
+a.chip.entity:hover::after { color: inherit; }
 .fields { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: flex-start; }
 [data-docdive-field-chip] { display: inline-flex; align-items: baseline; gap: 4px; padding: 1px 8px; border-radius: 6px; background: var(--docdive-surface-2); font-family: var(--docdive-font-mono); font-size: .82em; line-height: 1.6; }
 [data-docdive-field-chip] .k { color: var(--docdive-fg-muted); }

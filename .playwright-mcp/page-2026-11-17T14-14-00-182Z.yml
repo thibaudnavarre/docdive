@@ -1,0 +1,77 @@
+- generic [active] [ref=e1]:
+  - link "Aller au contenu" [ref=e2] [cursor=pointer]:
+    - /url: "#architecture-du-systeme"
+  - banner [ref=e3]:
+    - navigation "En-tête" [ref=e4]:
+      - generic [ref=e5] [cursor=pointer]
+      - generic [ref=e9]:
+        - generic [ref=e10]: Analyse des eaux — docdive
+        - generic: Architecture du système
+      - generic [ref=e12]:
+        - radio "Mode sombre"
+        - generic "Mode sombre" [ref=e13] [cursor=pointer]
+        - radio "Mode clair"
+  - generic [ref=e16]:
+    - main [ref=e17]:
+      - generic [ref=e18]:
+        - navigation "Navigation" [ref=e21]:
+          - generic [ref=e22] [cursor=pointer]:
+            - link "Analyse des eaux — docdive" [ref=e23]:
+              - /url: ../..
+            - text: Analyse des eaux — docdive
+          - list [ref=e26]:
+            - listitem [ref=e27]:
+              - link "Analyse des eaux — modèle docdive" [ref=e28] [cursor=pointer]:
+                - /url: ../..
+            - listitem [ref=e30]:
+              - generic [ref=e31]: Architecture
+              - navigation "Architecture" [ref=e34]:
+                - list [ref=e37]:
+                  - listitem [ref=e38]:
+                    - link "Orchestration de l'analyse" [ref=e39] [cursor=pointer]:
+                      - /url: ../analyse/
+                  - listitem [ref=e41]:
+                    - link "Notifications" [ref=e42] [cursor=pointer]:
+                      - /url: ../notifications/
+                  - listitem [ref=e44]:
+                    - link "SPA React" [ref=e45] [cursor=pointer]:
+                      - /url: ../spa/
+                  - listitem [ref=e47]:
+                    - link "Architecture du système" [ref=e48] [cursor=pointer]:
+                      - /url: ./
+            - listitem [ref=e50]:
+              - generic [ref=e51]: Scenarios
+              - navigation "Scenarios" [ref=e54]:
+                - list [ref=e57]:
+                  - listitem [ref=e58]:
+                    - link "Scénario — analyse d'un document conforme" [ref=e59] [cursor=pointer]:
+                      - /url: ../../scenarios/analyse-conforme/
+                  - listitem [ref=e61]:
+                    - link "Scénario — analyse d'un document non conforme" [ref=e62] [cursor=pointer]:
+                      - /url: ../../scenarios/analyse-document/
+                  - listitem [ref=e64]:
+                    - link "Scénario — publication d'une nouvelle version des seuils" [ref=e65] [cursor=pointer]:
+                      - /url: ../../scenarios/publication-seuils/
+                  - listitem [ref=e67]:
+                    - link "Scénario — revue humaine d'une extraction peu fiable" [ref=e68] [cursor=pointer]:
+                      - /url: ../../scenarios/revue-humaine/
+        - generic [ref=e70]:
+          - generic:
+            - generic:
+              - navigation "Table des matières"
+        - article [ref=e72]:
+          - heading "Architecture du système" [level=1] [ref=e73]
+          - paragraph [ref=e74]:
+            - text: Vue statique des composants et de leurs échanges (cf.
+            - code [ref=e75]: _retrodoc/tech/03_flows.md
+            - text: ", FLUX-INT-* et FLUX-EXT-*)."
+          - group "Zoom" [ref=e79]:
+            - button "Fit the diagram in the window" [ref=e80] [cursor=pointer]: Fit
+            - button "Zoom out" [ref=e81] [cursor=pointer]: −
+            - button "Zoom in" [ref=e82] [cursor=pointer]: +
+            - button "Actual size" [ref=e83] [cursor=pointer]: 100%
+    - contentinfo [ref=e84]:
+      - generic [ref=e87]:
+        - text: Made with
+        - link "Material for MkDocs" [ref=e88] [cursor=pointer]:
+          - /url: https://squidfunk.github.io/mkdocs-material/
