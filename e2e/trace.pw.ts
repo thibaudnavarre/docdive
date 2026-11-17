@@ -87,10 +87,15 @@ for (const site of SITES) {
       await page.click(q('text[data-docdive-message="2"]'));
       await expectPaused(page, "2");
       await expect(page.locator(q("[data-docdive-scrub]"))).toHaveAttribute("aria-valuenow", "2");
-      // The SVG never shrinks below its natural width (the card scrolls instead).
+      // Fit by default: the SVG is no wider than its viewport; zooming in scales it up and leaves Fit.
       const svg = page.locator(q("svg"));
-      const natural = (await svg.getAttribute("viewBox"))!.split(/\s+/)[2];
-      await expect(svg).toHaveCSS("min-width", `${natural}px`);
+      const viewport = page.locator(q("[data-docdive-viewport]"));
+      const fitted = (await svg.boundingBox())!.width;
+      expect(fitted).toBeLessThanOrEqual((await viewport.boundingBox())!.width + 1);
+      await expect(page.locator(q('[data-docdive-zoom-action="fit"]'))).toHaveAttribute("aria-pressed", "true");
+      await page.click(q('[data-docdive-zoom-action="in"]'));
+      expect((await svg.boundingBox())!.width).toBeGreaterThan(fitted);
+      await expect(page.locator(q('[data-docdive-zoom-action="fit"]'))).toHaveAttribute("aria-pressed", "false");
       await expect(page.locator(q("[data-docdive-error]"))).toHaveText("");
     });
 

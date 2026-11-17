@@ -7,8 +7,9 @@ The web components of [docdive](https://github.com/thibaudnavarre/docdive):
   Boxes with a diagram of their own are drawn heavier; click one (or focus it and press Enter) to inspect it. When the
   element is at least 960px wide the inspector docks to the right of the diagram, otherwise it sits below.
   The player is one play/pause glyph, a rail you click, drag or move with ←/→ (one mark per step; a dot marks the
-  steps that write state) and the step sentence. A sequence diagram keeps its natural width: the diagram card
-  scrolls and follows the active message, and clicking a message jumps to its step. Under it, the state strip shows what each participant holds at
+  steps that write state) and the step sentence. The diagram fits the window by default; its zoom controls
+  (Fit, −, +, 100%) scale it, the card then scrolls and follows the active message, and clicking a message jumps to
+  its step. Under it, the state strip shows what each participant holds at
   this step, read from the scenario's `Note over X: Entity k=v …` lines, by participant or by entity (each entity's
   trail across the steps); the inspector repeats the selected element's state. Fields are listed alphabetically.
 - `<docdive-map>` is the system at a glance: the element tree and the flows, each linking to its page. Drop
@@ -37,7 +38,8 @@ docdive-diagram::part(panel) { box-shadow: none; }
 Tokens: `--docdive-bg`, `--docdive-surface`, `--docdive-surface-2`, `--docdive-fg`, `--docdive-fg-muted`,
 `--docdive-border`, `--docdive-accent`, `--docdive-on-accent`, `--docdive-selected`, `--docdive-ok`, `--docdive-error`,
 `--docdive-node-fill`, `--docdive-node-stroke`, `--docdive-edge`, `--docdive-font`, `--docdive-font-mono`,
-`--docdive-radius`, `--docdive-space`, `--docdive-duration`, `--docdive-shadow`. Parts: `crumbs`, `trace`, `state`, `diagram`,
+`--docdive-radius`, `--docdive-space`, `--docdive-duration`, `--docdive-shadow`, `--docdive-diagram-max-height` (default
+`calc(100vh - 8rem)`). Parts: `crumbs`, `trace`, `state`, `diagram`, `zoom`,
 `panel` on `docdive-diagram`, `map` on `docdive-map`. Mermaid `classDef`, `style` and `linkStyle` always win over the
 defaults, and motion respects `prefers-reduced-motion`.
 

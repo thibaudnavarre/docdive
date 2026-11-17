@@ -38,7 +38,7 @@ export { resolveMermaid, type MermaidApi } from "./mermaid-resolver.js";
 // `detail: { url, id }`). Layout: breadcrumb, scenario player, diagram, inspector in one column; when a node is
 // selected and the element is at least 960px wide, the inspector docks to the right of the diagram.
 //
-// Styling API: the `--docdive-*` custom properties below and the shadow parts `crumbs`, `trace`, `diagram`, `panel`.
+// Styling API: the `--docdive-*` custom properties below and the shadow parts `crumbs`, `trace`, `diagram`, `zoom`, `panel`.
 //
 // Inputs (all overridable by attribute; defaults sit next to this script so they follow the base URL):
 //   source      Mermaid source (attribute/property). Falls back to the light-DOM text, which is then removed.
@@ -51,8 +51,9 @@ export { resolveMermaid, type MermaidApi } from "./mermaid-resolver.js";
 // Scenario trace: a player in the shadow root, shown only when a scenario touches the diagram: one play/pause glyph,
 // a scrubbable rail (`data-docdive-scrub`, a slider; `data-docdive-mark` per step), the `n / N` counter, the step
 // sentence, and under it the state strip (`data-docdive-state`): what each drawn participant holds at this step,
-// A sequence diagram keeps its natural width (the card scrolls and follows the active message) and clicking a message
-// jumps to its step.
+// The diagram card fits the window by default (width and `--docdive-diagram-max-height`); its zoom controls
+// (`data-docdive-zoom`: Fit, −, +, 100%) scale the SVG, the viewport then scrolls and follows the active message.
+// Clicking a message jumps to its step.
 // from the scenario's `Note over X: Entity k=v …` lines, by participant or by entity. Initial state
 // comes from the page query (`docdive-scenario`, `docdive-step`), restored paused, and `docdive-select` (an element ID
 // shown in this diagram) reopens its panel (the panel's "Copy link" builds such a URL); invalid values are ignored or
@@ -84,7 +85,7 @@ const STYLE = `
 ${TOKEN_STYLE}
 :host { container-type: inline-size; }
 [hidden] { display: none !important; }
-[data-docdive-layout] { display: grid; gap: var(--docdive-space); grid-template-areas: "crumbs" "trace" "error" "diagram" "panel"; }
+[data-docdive-layout] { display: grid; gap: var(--docdive-space); grid-template-columns: minmax(0, 1fr); grid-template-areas: "crumbs" "trace" "error" "diagram" "panel"; }
 [data-docdive-breadcrumb] { grid-area: crumbs; }
 [data-docdive-trace] { grid-area: trace; }
 [data-docdive-error] { grid-area: error; }
@@ -98,10 +99,15 @@ ${TOKEN_STYLE}
   [data-docdive-layout][data-docdive-docked] [data-docdive-panel] { position: sticky; top: var(--docdive-space); }
 }
 .card { padding: calc(var(--docdive-space) * 1.25); background: var(--docdive-surface); border: 1px solid var(--docdive-border); border-radius: var(--docdive-radius); box-shadow: var(--docdive-shadow); }
-/* A diagram wider or taller than the card scrolls inside it (sequence SVGs keep their natural width, see draw()). */
-[data-docdive-diagram] { padding: calc(var(--docdive-space) * 1.25); background: var(--docdive-surface); border: 1px solid var(--docdive-border); border-radius: var(--docdive-radius); overflow: auto; max-height: 75vh; scroll-behavior: smooth; }
-@media (prefers-reduced-motion: reduce) { [data-docdive-diagram] { scroll-behavior: auto; } }
-[data-docdive-diagram] svg { display: block; max-width: 100%; height: auto; }
+/* The diagram card: the zoom bar on its own row (it never covers a node), then a viewport that fits the window
+   (width and height) by default and scrolls once zoomed in. The SVG's width is set inline by setZoom(). */
+[data-docdive-diagram] { display: grid; grid-template-columns: minmax(0, 1fr); gap: .6em; padding: calc(var(--docdive-space) * 1.25); background: var(--docdive-surface); border: 1px solid var(--docdive-border); border-radius: var(--docdive-radius); }
+[data-docdive-viewport] { min-width: 0; overflow: auto; max-height: var(--docdive-diagram-max-height); scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { [data-docdive-viewport] { scroll-behavior: auto; } }
+[data-docdive-viewport] svg { display: block; height: auto; max-width: none; }
+[data-docdive-zoom] { justify-self: end; }
+[data-docdive-zoom] button { min-width: 2.2em; justify-content: center; }
+[data-docdive-zoom-level] { align-self: center; min-width: 3.6em; text-align: center; font-size: .86em; font-variant-numeric: tabular-nums; }
 
 /* Controls */
 button, select, a.btn { font: inherit; font-size: .93em; color: inherit; background: var(--docdive-surface); border: 1px solid var(--docdive-border); border-radius: 999px; padding: .3em .9em; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: .4em; line-height: 1.3; transition: background-color var(--docdive-duration), border-color var(--docdive-duration), color var(--docdive-duration); }
@@ -280,6 +286,11 @@ export class DocdiveDiagram extends HTMLElement {
   private root = this.attachShadow({ mode: "open" });
   private layout = el("div", { "data-docdive-layout": "" });
   private host = el("div", { "data-docdive-diagram": "", part: "diagram" });
+  // The scroll container holding the SVG; `zoom` is a scale factor, "fit" = the largest scale (≤ 1) showing it whole.
+  private viewport = el("div", { "data-docdive-viewport": "" });
+  private zoom: number | "fit" = "fit";
+  private zoomBar = el("div", { "data-docdive-zoom": "", part: "zoom", class: "mode", role: "group", "aria-label": "Zoom" });
+  private zoomReadout = el("span", { "data-docdive-zoom-level": "", class: "muted" });
   private errorHost = el("div", { "data-docdive-error": "" });
   private panel = el("aside", { "data-docdive-panel": "", part: "panel", "aria-label": "Element details" });
   private index?: Index;
@@ -322,10 +333,22 @@ export class DocdiveDiagram extends HTMLElement {
     super();
     this.layout.append(this.errorHost, this.host, this.panel);
     this.root.append(el("style", {}, STYLE), this.layout);
-    this.host.addEventListener("click", (ev) => this.onSelect(ev));
-    this.host.addEventListener("keydown", (ev) => {
+    this.viewport.addEventListener("click", (ev) => this.onSelect(ev));
+    this.viewport.addEventListener("keydown", (ev) => {
       if (ev.key === "Enter" || ev.key === " ") this.onSelect(ev);
     });
+    // Zoom: Fit (default) | − | readout | + | 100 %. ± step by 1.25×; the viewport refits on resize while in Fit.
+    const zoomBtn = (action: string, label: string, aria: string) => el("button", { "data-docdive-zoom-action": action, "aria-label": aria, title: aria }, label);
+    this.zoomBar.append(zoomBtn("fit", "Fit", "Fit the diagram in the window"), zoomBtn("out", "\u2212", "Zoom out"), this.zoomReadout, zoomBtn("in", "+", "Zoom in"), zoomBtn("reset", "100%", "Actual size"));
+    this.zoomBar.addEventListener("click", (ev) => {
+      const action = (ev.target as Element).closest("[data-docdive-zoom-action]")?.getAttribute("data-docdive-zoom-action");
+      if (!action) return;
+      const z = this.currentZoom();
+      this.setZoom(action === "fit" ? "fit" : action === "reset" ? 1 : Math.min(4, Math.max(0.1, action === "in" ? z * 1.25 : z / 1.25)));
+      this.followStep();
+    });
+    this.host.append(this.zoomBar, this.viewport);
+    new ResizeObserver(() => this.zoom === "fit" && this.setZoom("fit")).observe(this.viewport);
     const counter = el("span", { "data-docdive-counter": "" });
     counter.append(this.stepNo, this.stepTotal);
     this.playBtn.append(el("span", { class: "glyph-icon", "aria-hidden": "true" }));
@@ -457,7 +480,8 @@ export class DocdiveDiagram extends HTMLElement {
       const resolved = await resolveMermaid({ injected: injectedMermaid, win: window, loadBundled });
       if (!diagram) {
         // Not indexed (pie, state, a flowchart docdive cannot parse): draw it plain rather than hide it.
-        this.host.innerHTML = (await resolved.mermaid.render(`docdive-r${renderCount++}`, source)).svg;
+        this.viewport.innerHTML = (await resolved.mermaid.render(`docdive-r${renderCount++}`, source)).svg;
+        this.setZoom(this.zoom);
         return;
       }
       let used: string = resolved.source;
@@ -491,9 +515,10 @@ export class DocdiveDiagram extends HTMLElement {
   // Renders and annotates; returns a problem description when the SVG could not be mapped to the index.
   private async draw(mermaid: MermaidApi, source: string, diagram: DiagramEntry, index: Index): Promise<string | null> {
     const { svg } = await mermaid.render(`docdive-r${renderCount++}`, source);
-    this.host.innerHTML = svg;
-    const svgEl = this.host.querySelector("svg") as unknown as SVGElement | null;
+    this.viewport.innerHTML = svg;
+    const svgEl = this.viewport.querySelector("svg") as unknown as SVGElement | null;
     if (!svgEl) return "Mermaid produced no SVG";
+    this.setZoom(this.zoom);
     if (diagram.type === "flowchart") {
       annotateFlowchart(svgEl, diagram, index);
       const mapped = (attr: string) => svgEl.querySelectorAll(`[${attr}]`).length;
@@ -501,9 +526,6 @@ export class DocdiveDiagram extends HTMLElement {
       if (diagram.edges.length > 0 && mapped("data-docdive-edge") === 0) return "no flowchart edge could be mapped";
     }
     if (diagram.type !== "sequence") return null;
-    // A sequence diagram is as wide as its participants: never shrink it below its natural size, let the card scroll.
-    const natural = Number(svgEl.getAttribute("viewBox")?.split(/\s+/)[2]);
-    if (natural > 0) svgEl.style.minWidth = `${natural}px`;
     annotateActors(svgEl, diagram, index);
     return annotateSequence(svgEl, diagram, index);
   }
@@ -588,16 +610,45 @@ export class DocdiveDiagram extends HTMLElement {
     for (const [a, id] of this.crumbLinks) a.setAttribute("href", this.openUrl(id) ?? "");
   }
 
-  // Scrolls the diagram card so the active message sits at its centre; the page itself never moves (no scrollIntoView).
+  // Natural size of the drawn SVG from its viewBox; null when there is none.
+  private natural(): { svg: SVGElement; w: number; h: number } | null {
+    const svg = this.viewport.querySelector("svg") as unknown as SVGElement | null;
+    const [, , w, h] = (svg?.getAttribute("viewBox") ?? "").split(/\s+/).map(Number);
+    return svg && w && h ? { svg, w, h } : null;
+  }
+
+  // Fit = whole diagram inside the viewport's width and max-height, never above 1:1.
+  private fitZoom(): number {
+    const n = this.natural();
+    if (!n) return 1;
+    const maxH = Number.parseFloat(getComputedStyle(this.viewport).maxHeight) || Infinity;
+    // A hidden element (tab, details) has no width yet; the ResizeObserver refits it once shown.
+    return Math.min(1, (this.viewport.clientWidth || Infinity) / n.w, maxH / n.h);
+  }
+
+  private currentZoom(): number {
+    return this.zoom === "fit" ? this.fitZoom() : this.zoom;
+  }
+
+  // Applies the zoom as the SVG's width (the viewBox scales the rest) and updates the readout and the Fit toggle.
+  private setZoom(zoom: number | "fit"): void {
+    this.zoom = zoom;
+    const n = this.natural();
+    const z = this.currentZoom();
+    if (n) n.svg.style.width = `${n.w * z}px`;
+    this.zoomReadout.textContent = `${Math.round(z * 100)}%`;
+    this.zoomBar.querySelector('[data-docdive-zoom-action="fit"]')?.setAttribute("aria-pressed", String(zoom === "fit"));
+    this.host.setAttribute("data-docdive-scale", zoom === "fit" ? "fit" : String(z));
+  }
+
+  // Scrolls the viewport so the active message sits at its centre; the page itself never moves (no scrollIntoView).
   private followStep(): void {
-    const line = this.host.querySelector(`[class^="messageLine"][data-docdive-message="${this.step}"]`);
-    if (!line) return void (this.step === 0 && this.host.scrollTo(0, 0));
-    const h = this.host.getBoundingClientRect();
+    const v = this.viewport;
+    const line = v.querySelector(`[class^="messageLine"][data-docdive-message="${this.step}"]`);
+    if (!line) return void (this.step === 0 && v.scrollTo(0, 0));
+    const h = v.getBoundingClientRect();
     const r = line.getBoundingClientRect();
-    this.host.scrollTo(
-      this.host.scrollLeft + (r.left + r.width / 2 - h.left) - h.width / 2,
-      this.host.scrollTop + (r.top + r.height / 2 - h.top) - h.height / 2,
-    );
+    v.scrollTo(v.scrollLeft + (r.left + r.width / 2 - h.left) - h.width / 2, v.scrollTop + (r.top + r.height / 2 - h.top) - h.height / 2);
   }
 
   // `k = v` chip; tinted when the current step set it.

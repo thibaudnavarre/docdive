@@ -26,7 +26,7 @@ export const TOKEN_STYLE = `
   --docdive-border: #e4e4e7; --docdive-accent: #4f46e5; --docdive-on-accent: #fff; --docdive-selected: #0284c7; --docdive-ok: #15803d; --docdive-error: #b91c1c;
   --docdive-node-fill: #fff; --docdive-node-stroke: #8e8e96; --docdive-edge: #71717a;
   --docdive-font: inherit; --docdive-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --docdive-radius: 14px; --docdive-space: 16px; --docdive-duration: 160ms;
+  --docdive-radius: 14px; --docdive-space: 16px; --docdive-duration: 160ms; --docdive-diagram-max-height: calc(100vh - 8rem);
   --docdive-shadow: 0 1px 2px rgb(0 0 0 / .04), 0 4px 16px -8px rgb(0 0 0 / .08);
   display: block; font-family: var(--docdive-font); color: var(--docdive-fg); line-height: 1.45;
 }
