@@ -26,6 +26,10 @@ Selecting a node can show a **Source** link that opens the repo page at the Mark
 (or first mentioned). The URL comes from the docs plugin's `editUrl`: a GitHub `/edit/` or GitLab `/-/edit/` URL is
 rewritten to its `/blob/` view with `#L<line>`. Other hosts need `sourceUrl`. With neither, the link is hidden.
 
+The same edit URL turns the panel's `src` paths and the state entities declared with `entities:` into links to the
+repo (`https://github.com/org/repo/blob/main/<path>`). Other hosts, or a branch name containing `/`, need the theme
+option `srcUrl`: a template with `{path}` (repo-root-relative), e.g. `https://git.example.com/org/repo/src/main/{path}`.
+
 ## Dev mode
 
 `docusaurus start` works with no extra config. The theme runs `docdive watch` on the docs folder, writes its output to

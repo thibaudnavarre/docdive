@@ -208,6 +208,10 @@ for (const site of SITES) {
       await order.locator('[data-docdive-trail-step="1"]').click();
       await expect(page.locator(q("[data-docdive-step]"))).toHaveText("1");
       await expect(order.locator("li[data-future]")).toHaveCount(4);
+      // order-service.md declares `entities: Order`, so its chip links to the code; Payment is undeclared.
+      await expect(order.locator('a[data-docdive-entity="Order"]')).toHaveAttribute("href", "https://github.com/thibaudnavarre/docdive/blob/main/src/orders/order.ts");
+      await expect(strip.locator('[data-docdive-trail="Payment"] a')).toHaveCount(0);
+      await expect(strip.locator('[data-docdive-trail="Payment"] .chip.entity')).toHaveText("Payment");
       // A child page shows only its own state.
       await open(page, "architecture/orders-db.md", `?docdive-scenario=${SCENARIO}&docdive-step=6`);
       await expect(page.locator(q("[data-docdive-state-card]"))).toHaveCount(1);

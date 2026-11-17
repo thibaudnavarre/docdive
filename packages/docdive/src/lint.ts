@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { loadDocs, type Doc } from "./loader.js";
-import { asStringArray, buildModel, resolveParticipant, type Diagnostic, type Index } from "./model.js";
+import { asStringArray, buildModel, docEntities, resolveParticipant, type Diagnostic, type Index } from "./model.js";
 import { nearMiss, normalise } from "./fuzzy.js";
 
 export interface LintResult {
@@ -98,13 +98,18 @@ export function lintMissingParents(docs: Doc[]): Diagnostic[] {
   return out;
 }
 
-/** E4: `src:` path that does not exist under the repo root. */
+/** E4: `src:` or `entities:` path that does not exist under the repo root. */
 export function lintMissingSrc(docs: Doc[], repoRoot: string): Diagnostic[] {
   const out: Diagnostic[] = [];
   for (const doc of docs) {
-    for (const path of asStringArray(doc.frontmatter.src)) {
+    const paths: [string, string | undefined][] = [
+      ...asStringArray(doc.frontmatter.src).map((p): [string, undefined] => [p, undefined]),
+      ...docEntities(doc).flatMap(([name, ps]) => ps.map((p): [string, string] => [p, name])),
+    ];
+    for (const [path, entity] of paths) {
       if (existsSync(join(repoRoot, path))) continue;
-      out.push({ rule: "missing-src", file: doc.path, src: path, message: `src path "${path}" does not exist` });
+      const where = entity ? `entity "${entity}" path` : "src path";
+      out.push({ rule: "missing-src", file: doc.path, src: path, ...(entity && { entity }), message: `${where} "${path}" does not exist` });
     }
   }
   return out;

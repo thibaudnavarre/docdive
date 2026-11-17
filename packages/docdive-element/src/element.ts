@@ -17,6 +17,7 @@ import {
   ownScenario,
   panelFields,
   relevantHolder,
+  repoHref,
   sourceHref,
   stateAt,
   stateSteps,
@@ -62,11 +63,13 @@ export { resolveMermaid, type MermaidApi } from "./mermaid-resolver.js";
 // without it the first diagram that matches owns it and the others start idle. Step changes don't rewrite the URL.
 // `docdive-interval` (ms) overrides the play interval.
 
-// doc -> page URL, plus the reserved `sources` (doc -> edit URL) and `sourceUrl` (template) used for the Source link.
+// doc -> page URL, plus the reserved `sources` (doc -> edit URL) and `sourceUrl` (template) used for the Source link,
+// and `srcUrl` (`{path}` template) for repo paths from `src:` / `entities:`.
 interface DocMap {
   [doc: string]: string | Record<string, string> | undefined;
   sources?: Record<string, string>;
   sourceUrl?: string;
+  srcUrl?: string;
 }
 
 // Mermaid resolution: a host instance given to `setMermaid`, then a valid `window.mermaid`, then a lazily
@@ -203,6 +206,8 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 [data-docdive-field="description"] { color: var(--docdive-fg-muted); }
 .chips { display: flex; flex-wrap: wrap; gap: .3em; }
 [data-docdive-field="src"] code { font-family: var(--docdive-font-mono); font-size: .92em; }
+[data-docdive-field="src"] a { color: var(--docdive-accent); text-decoration: none; }
+[data-docdive-field="src"] a:hover { text-decoration: underline; }
 .actions { display: flex; flex-wrap: wrap; gap: .4em; align-items: center; }
 .actions a { color: var(--docdive-accent); text-decoration: none; }
 .actions a:hover { text-decoration: underline; }
@@ -662,6 +667,22 @@ export class DocdiveDiagram extends HTMLElement {
     return chip;
   }
 
+  // Repo URL of a repo-root-relative path: `srcUrl` template, else derived from this page's (or any) edit URL.
+  private repoUrl(path: string): string | null {
+    const { sources, srcUrl } = this.map;
+    const editUrl = (this.page && sources?.[this.page.doc]) || Object.values(sources ?? {})[0];
+    return repoHref(srcUrl, editUrl, path);
+  }
+
+  // Entity name chip; a link to its code when `entities:` declares it and the repo URL resolves.
+  // shortcut: links the first src path only, add an inspector row when an entity needs several.
+  private entityChip(name: string): HTMLElement {
+    const src = this.index?.entities?.[name]?.src ?? [];
+    const href = src.length > 0 ? this.repoUrl(src[0]!) : null;
+    if (!href) return el("span", { class: "chip entity" }, name);
+    return el("a", { class: "chip entity", "data-docdive-entity": name, href, target: "_blank", rel: "noopener", title: src.join("\n") }, name);
+  }
+
   // Participant name as a button that selects it when this diagram draws it, plain text otherwise.
   private ownerName(id: string): HTMLElement {
     const drawn = this.host.querySelector(`[data-docdive-node="${CSS.escape(id)}"]`);
@@ -701,7 +722,7 @@ export class DocdiveDiagram extends HTMLElement {
       if (c.changed) card.setAttribute("data-changed", "");
       const header = el("header");
       header.append(this.ownerName(c.over));
-      if (c.entity) header.append(el("span", { class: "chip entity" }, c.entity));
+      if (c.entity) header.append(this.entityChip(c.entity));
       const fields = el("div", { class: "fields" });
       fields.append(...c.fields.map((f) => this.fieldChip(f)));
       card.append(header, fields);
@@ -719,7 +740,7 @@ export class DocdiveDiagram extends HTMLElement {
       const row = el("div", { class: "trail-row", "data-docdive-trail": entity });
       if (now?.step === this.step) row.setAttribute("data-changed", "");
       const head = el("div", { class: "trail-head" });
-      head.append(el("span", { class: "chip entity" }, entity));
+      head.append(this.entityChip(entity));
       const where = el("span");
       if (now) where.append("lives at ", this.ownerName(now.over));
       else where.textContent = "not created yet";
@@ -750,7 +771,7 @@ export class DocdiveDiagram extends HTMLElement {
     this.panelState.append(el("span", { class: "label" }, this.step ? `State at step ${this.step}` : "Initial state"));
     for (const c of mine) {
       const card = el("div");
-      if (c.entity) card.append(el("span", { class: "chip entity" }, c.entity));
+      if (c.entity) card.append(this.entityChip(c.entity));
       const fields = el("div", { class: "fields" });
       fields.append(...c.fields.map((f) => this.fieldChip(f)));
       card.append(fields);
@@ -921,7 +942,15 @@ export class DocdiveDiagram extends HTMLElement {
     if (src.length > 0) {
       const row = el("div", { "data-docdive-field": "src" });
       const list = el("div", { class: "chips" });
-      list.append(...src.map((p) => el("code", { "data-docdive-value": "" }, p)));
+      list.append(
+        ...src.map((p) => {
+          const href = this.repoUrl(p);
+          if (!href) return el("code", { "data-docdive-value": "" }, p);
+          const a = el("a", { "data-docdive-value": "", href, target: "_blank", rel: "noopener" });
+          a.append(el("code", {}, p));
+          return a;
+        }),
+      );
       row.append(el("span", { class: "label" }, "Source"), list);
       this.panel.append(row);
     }

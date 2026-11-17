@@ -27,6 +27,8 @@ class DocdiveConfig(base.Config):
     command = c.Type(str, default=f"npx --yes docdive@{__version__}")
     # Click-to-source URL template with `{path}` (doc path relative to docs_dir) and `{line}`; wins over `edit_uri`.
     source_url = c.Optional(c.Type(str))
+    # Repo URL template with `{path}` (repo-root-relative) for `src:` / `entities:` links; wins over `edit_uri`.
+    src_url = c.Optional(c.Type(str))
 
 
 class DocdivePlugin(BasePlugin[DocdiveConfig]):
@@ -70,4 +72,6 @@ class DocdivePlugin(BasePlugin[DocdiveConfig]):
             doc_map["sources"] = self.edit_urls
         if self.config.source_url:
             doc_map["sourceUrl"] = self.config.source_url
+        if self.config.src_url:
+            doc_map["srcUrl"] = self.config.src_url
         (dest / "docdive-map.json").write_text(json.dumps(doc_map, indent=2) + "\n")

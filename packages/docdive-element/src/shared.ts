@@ -27,6 +27,8 @@ export interface Index {
   version?: number;
   diagrams: DiagramEntry[];
   elements: Record<string, ElementEntry>;
+  /** State entities declared in frontmatter `entities:`, with their repo paths. */
+  entities?: Record<string, { src: string[] }>;
   scenarios: Record<string, { doc: string; steps: { from: string; to: string; label: string; isReturn: boolean; notes?: StateNote[] }[]; initial?: StateNote[] }>;
 }
 
@@ -237,6 +239,27 @@ export function sourceHref(editUrl: string | undefined, template: string | undef
   url.search = "";
   url.hash = `L${line}`;
   return url.href;
+}
+
+// Repo web URL of a repo-root-relative path (`src:` / `entities:`). A `{path}` template wins; otherwise the repo
+// blob root comes from a GitHub or GitLab edit URL (`…/edit/<branch>/…` → `…/blob/<branch>/`). Any other host
+// returns null. shortcut: branch = the first segment after edit/, branches with "/" need the template.
+export function repoHref(template: string | undefined, editUrl: string | undefined, path: string): string | null {
+  if (template) return template.replace(/\{path\}/g, encodeURI(path));
+  if (!editUrl) return null;
+  let url: URL;
+  try {
+    url = new URL(editUrl);
+  } catch {
+    return null;
+  }
+  const m = url.pathname.includes("/-/edit/")
+    ? /^(.*\/-\/)edit\/([^/]+)\//.exec(url.pathname)
+    : url.hostname === "github.com"
+      ? /^(\/[^/]+\/[^/]+\/)edit\/([^/]+)\//.exec(url.pathname)
+      : null;
+  if (!m) return null;
+  return `${url.origin}${m[1]}blob/${m[2]}/${encodeURI(path)}`;
 }
 
 // ---- scenario trace ---------------------------------------------------------------------------

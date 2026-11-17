@@ -40,6 +40,8 @@ export interface Diagnostic {
 export interface Index {
   version: 1;
   elements: Record<string, Element>;
+  /** State entities (`Order`, `Payment`) declared in frontmatter `entities:`, merged across docs. */
+  entities: Record<string, { src: string[] }>;
   diagrams: Diagram[];
   scenarios: Record<string, Scenario>;
   diagnostics: Diagnostic[];
@@ -51,6 +53,13 @@ const isSequence = (type: string) => type === "sequenceDiagram";
 export const asStringArray = (v: unknown): string[] =>
   Array.isArray(v) ? v.map(String) : typeof v === "string" ? [v] : [];
 
+/** Frontmatter `entities: { Order: src/orders/order.ts | [paths] }` as `[name, paths]` pairs; anything else is ignored. */
+export function docEntities(doc: Doc): [string, string[]][] {
+  const v = doc.frontmatter.entities;
+  if (!v || typeof v !== "object" || Array.isArray(v)) return [];
+  return Object.entries(v as Record<string, unknown>).map(([name, paths]) => [name, asStringArray(paths)]);
+}
+
 /** Node IDs of 1–2 characters (`A`, `B1`) are throwaway placeholders: drawn, but never elements. */
 const isPlaceholder = (id: string) => id.length <= 2;
 
@@ -60,6 +69,7 @@ const docId = (doc: Doc): string | null =>
 
 export function buildModel(docs: Doc[]): Index {
   const elements: Record<string, Element> = {};
+  const entities: Index["entities"] = {};
   const diagrams: Diagram[] = [];
   const scenarios: Record<string, Scenario> = {};
   const diagnostics: Diagnostic[] = [];
@@ -81,6 +91,10 @@ export function buildModel(docs: Doc[]): Index {
       el.src = asStringArray(doc.frontmatter.src);
       if (typeof doc.frontmatter.description === "string") el.description = doc.frontmatter.description;
       if (doc.frontmatter.parent) el.parent = String(doc.frontmatter.parent);
+    }
+    for (const [name, paths] of docEntities(doc)) {
+      const entity = (entities[name] ??= { src: [] });
+      entity.src.push(...paths.filter((p) => !entity.src.includes(p)));
     }
   }
 
@@ -165,7 +179,7 @@ export function buildModel(docs: Doc[]): Index {
   for (const [id, el] of Object.entries(elements)) {
     if (el.parent) get(el.parent).children.push(id);
   }
-  const index: Index = { version: 1, elements, diagrams, scenarios, diagnostics };
+  const index: Index = { version: 1, elements, entities, diagrams, scenarios, diagnostics };
   diagnostics.push(...lintEdgeNotInDiagram(index), ...lintNoteParticipant(index), ...proposeFuzzyIds(elements));
   return index;
 }

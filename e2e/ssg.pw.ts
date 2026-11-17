@@ -91,6 +91,8 @@ for (const site of SITES) {
       await expect(field(page, "appearsIn")).toHaveText(["system", "checkout-happy-path"]);
       await expect(field(page, "scenarios")).toHaveText(scenarios);
       await expect(field(page, "src")).toHaveText(e.src!);
+      // Repo links derived from the sites' GitHub edit URL: the repo root, not the docs dir.
+      await expect(field(page, "src").first()).toHaveAttribute("href", `https://github.com/thibaudnavarre/docdive/blob/main/${e.src![0]}`);
     });
 
     test(`S5 info panel, undocumented element (${site.name})`, async ({ page }) => {

@@ -52,6 +52,19 @@ describe("buildModel", () => {
     expect(elements.notes).toBeUndefined();
   });
 
+  it("merges frontmatter entities across docs, string or list, and ignores malformed ones", () => {
+    const root = project({
+      "a.md": "---\nid: Orders\nentities:\n  Order: src/orders/order.ts\n---\n" + fc("  X --> Y"),
+      "b.md": "---\nid: flow\nkind: scenario\nentities:\n  Order: [src/orders/order.ts, src/orders/order.sql]\n  Payment: [src/pay/payment.ts]\n---\n```mermaid\nsequenceDiagram\n  X->>Y: go\n```\n",
+      "c.md": "---\nid: Bad\nentities: [Order]\n---\n" + fc("  Z --> W"),
+    });
+    const { entities } = buildModel(loadDocs(root));
+    expect(entities).toEqual({
+      Order: { src: ["src/orders/order.ts", "src/orders/order.sql"] },
+      Payment: { src: ["src/pay/payment.ts"] },
+    });
+  });
+
   it("indexes bare .mmd files and skips unsupported or broken blocks", () => {
     const root = project({
       "sys.mmd": "flowchart LR\n  Api --> Billing",

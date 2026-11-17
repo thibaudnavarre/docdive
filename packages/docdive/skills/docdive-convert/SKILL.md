@@ -16,7 +16,7 @@ Copy and tick:
 - [ ] 2. Make diagrams interactive: a flowchart/sequence fence hidden in <details> next to a static image becomes the shown diagram
 - [ ] 3. Pick canonical IDs; rename variants in every fence (node IDs only, labels stay)
 - [ ] 4. Hierarchy: root doc `id: system`, then `id` + `parent` on each doc that zooms into a node
-- [ ] 5. `src` and `description` on each doc with an `id`
+- [ ] 5. `src` and `description` on each doc with an `id`; `entities` where state notes name data the code defines
 - [ ] 6. Scenarios: one `kind: scenario` doc per feature or flow
 - [ ] 7. npx docdive lint <docs> --root <repo>; fix; repeat until "0 errors"
 - [ ] 8. npx docdive lint <docs> --root <repo> --json; resolve the warnings that are real
@@ -36,6 +36,7 @@ Do not stop while step 7 reports errors.
 - **Diagram types.** Only `flowchart`/`graph` and `sequenceDiagram` join the model. Leave other diagram types untouched.
 - **Scenarios.** Take flows from what the docs describe (numbered steps, existing sequence diagrams, "when a user…" prose). Turn each into a `sequenceDiagram` whose participants are element IDs. Never invent a step the docs or code do not support. When the docs or code say what the data looks like at a step (a status, an id, a row written), add a `Note over <holder>: Entity k=v …` after that message (see conventions, "State notes"); never invent fields.
 - **`src`.** Only paths you verified exist. A directory beats a guessed file. Omit when unsure.
+- **`entities`.** When a state note names an entity (`Order`) and the code has a file for it (a model, schema or type), declare `entities: { Order: [path] }` once, on the doc of the element that owns that data. Same rule as `src`: verified paths only.
 - **`description`.** One sentence from the docs: what it does.
 - **Docusaurus.** Frontmatter `id` is also the Docusaurus doc id. Keep it unique across the docs folder.
 

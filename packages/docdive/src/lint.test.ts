@@ -31,6 +31,16 @@ describe("lint errors", () => {
     expect(errors[0]).toMatchObject({ rule: "missing-src", file: "b.md", src: "src/nope/" });
   });
 
+  it("flags a missing entity path with the entity name", () => {
+    const root = repo({
+      "src/orders/order.ts": "",
+      "docs/a.md": doc("id: A\nentities:\n  Order: [src/orders/order.ts]\n  Payment: src/pay/payment.ts"),
+    });
+    const errors = lint(join(root, "docs"), root).errors;
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatchObject({ rule: "missing-src", file: "a.md", src: "src/pay/payment.ts", entity: "Payment" });
+  });
+
   it("flags a parent that is no doc id, with a suggestion only when one candidate fits", () => {
     const root = repo({
       "docs/system.md": doc("id: system"),

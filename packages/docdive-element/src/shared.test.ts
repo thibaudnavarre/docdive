@@ -12,6 +12,7 @@ import {
   hasSeveralFences,
   hasState,
   relevantHolder,
+  repoHref,
   stateAt,
   stateSteps,
   hostTheme,
@@ -129,6 +130,27 @@ describe("sourceHref", () => {
   it("returns null without any input", () => {
     expect(sourceHref(undefined, undefined, "a.md", 1)).toBeNull();
     expect(sourceHref("not a url", undefined, "a.md", 1)).toBeNull();
+  });
+});
+
+describe("repoHref", () => {
+  it("derives the blob root from a GitHub edit URL, whatever the docs dir", () => {
+    expect(repoHref(undefined, "https://github.com/o/r/edit/main/site/docs/a.md", "src/orders/")).toBe("https://github.com/o/r/blob/main/src/orders/");
+  });
+
+  it("derives the blob root from a GitLab edit URL, including self-hosted", () => {
+    expect(repoHref(undefined, "https://git.example.com/g/sub/p/-/edit/dev/docs/a.md", "src/a b.ts")).toBe("https://git.example.com/g/sub/p/-/blob/dev/src/a%20b.ts");
+  });
+
+  it("lets a template win over the edit URL", () => {
+    expect(repoHref("https://x.dev/tree/{path}", "https://github.com/o/r/edit/main/a.md", "src/")).toBe("https://x.dev/tree/src/");
+  });
+
+  it("returns null for other hosts, non-edit URLs and no input", () => {
+    expect(repoHref(undefined, "https://bitbucket.org/o/r/src/main/a.md", "src/")).toBeNull();
+    expect(repoHref(undefined, "https://github.com/o/r/blob/main/a.md", "src/")).toBeNull();
+    expect(repoHref(undefined, "not a url", "src/")).toBeNull();
+    expect(repoHref(undefined, undefined, "src/")).toBeNull();
   });
 });
 
