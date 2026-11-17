@@ -1,6 +1,6 @@
 {
   "name": "docdive",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Index Mermaid diagrams in Markdown docs into a navigable, animated system model.",
   "license": "MIT",
   "author": "Thibaud Navarre",
@@ -26,7 +26,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "docdive-element": "^0.3.0",
+    "docdive-element": "^0.4.0",
     "gray-matter": "^4.0.3",
     "yaml": "^2.9.1"
   }
