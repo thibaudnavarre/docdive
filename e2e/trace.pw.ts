@@ -1,8 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 import { SITES, docMap, toyContexts, toyIndex, watchErrors } from "./helpers.js";
 
-// Scenario animation (trace bar, play/pause, sequence, deep dive with trace), copy context and copy link, on both
-// example sites. Expected values come from `docdive build fixtures/toy`.
+// Scenario animation (rail, play/pause, sequence, deep dive with trace, state strip), copy context and copy link, on
+// both example sites. Expected values come from `docdive build fixtures/toy`.
 
 interface Step {
   from: string;
@@ -20,6 +20,9 @@ const contexts = toyContexts();
 
 const q = (sel: string) => `docdive-diagram ${sel}`;
 const stepText = (page: Page) => page.locator(q("[data-docdive-step]")).textContent();
+// The rail is the slider: ←/→ move one step, a mark jumps to its step.
+const next = (page: Page) => page.locator(q("[data-docdive-scrub]")).press("ArrowRight");
+const prev = (page: Page) => page.locator(q("[data-docdive-scrub]")).press("ArrowLeft");
 const activeNodes = (page: Page) =>
   page.$$eval(q("[data-docdive-node][data-docdive-active]"), (e) => e.map((x) => x.getAttribute("data-docdive-node")!).sort());
 
@@ -46,17 +49,21 @@ for (const site of SITES) {
       const before = page.url();
       await expect(page.locator(q("[data-docdive-trace]"))).toBeVisible();
       expect(await page.locator(q("[data-docdive-scenario-picker] option")).allTextContents()).toContain(SCENARIO);
+      await expect(page.locator(q("[data-docdive-mark]"))).toHaveCount(steps.length);
       for (let i = 1; i <= steps.length; i++) {
-        await page.click(q("[data-docdive-next]"));
+        await next(page);
         await expect(page.locator(q("[data-docdive-step]"))).toHaveText(String(i));
+        await expect(page.locator(q("[data-docdive-scrub]"))).toHaveAttribute("aria-valuenow", String(i));
         const s = steps[i - 1]!;
         expect(await activeNodes(page)).toEqual([...new Set([s.from, s.to])].sort());
       }
-      const next = page.locator(q("[data-docdive-next]"));
-      if (!(await next.isDisabled())) await next.click();
+      await next(page);
       await expect(page.locator(q("[data-docdive-step]"))).toHaveText(String(steps.length));
-      await page.click(q("[data-docdive-prev]"));
+      await prev(page);
       await expect(page.locator(q("[data-docdive-step]"))).toHaveText(String(steps.length - 1));
+      await page.click(q('[data-docdive-mark="2"]'));
+      await expect(page.locator(q("[data-docdive-step]"))).toHaveText("2");
+      await expect(page.locator(q('[data-docdive-mark="2"]'))).toHaveAttribute("aria-current", "step");
       expect(page.url()).toBe(before);
     });
 
@@ -71,7 +78,7 @@ for (const site of SITES) {
     test(`T3 sequence trace (${site.name})`, async ({ page }) => {
       await open(page, "scenarios/checkout.md");
       for (let i = 1; i <= steps.length; i++) {
-        await page.click(q("[data-docdive-next]"));
+        await next(page);
         const active = page.locator(q("text[data-docdive-active]"));
         await expect(active).toHaveCount(1);
         await expect(active).toHaveText(steps[i - 1]!.label);
@@ -103,8 +110,8 @@ for (const site of SITES) {
       await page.click(q('[data-docdive-node="OrderService"]'));
       expect(await page.locator(q("[data-docdive-open]")).getAttribute("href")).toBe(map["architecture/order-service.md"]);
 
-      await page.click(q("[data-docdive-next]"));
-      await page.click(q("[data-docdive-next]"));
+      await next(page);
+      await next(page);
       await page.evaluate(() => {
         const w = window as unknown as { nav?: unknown; cancel: boolean };
         w.cancel = true;
@@ -163,6 +170,37 @@ for (const site of SITES) {
       });
     }
 
+    test(`T11 state strip follows the step, by participant and by entity (${site.name})`, async ({ page }) => {
+      await open(page, "architecture/system.md", `?docdive-scenario=${SCENARIO}&docdive-step=2`);
+      const strip = page.locator(q("[data-docdive-state]"));
+      await expect(strip.locator("[data-docdive-state-card]")).toHaveCount(3);
+      // Step 2 writes OrderService (status=pending) and PaymentGateway; API's draft card is unchanged.
+      await expect(strip.locator('[data-docdive-state-card="OrderService"]')).toHaveAttribute("data-changed", "");
+      await expect(strip.locator('[data-docdive-state-card="API"]')).not.toHaveAttribute("data-changed", "");
+      await expect(strip.locator('[data-docdive-state-card="OrderService"] [data-docdive-field-chip="status"] .v')).toHaveText("pending");
+      // Step 6: fields accumulate, later wins (API's Order goes draft → paid), and the DB row appears.
+      await page.click(q('[data-docdive-mark="6"]'));
+      await expect(strip.locator('[data-docdive-state-card="API"] [data-docdive-field-chip="status"] .v')).toHaveText("paid");
+      await expect(strip.locator('[data-docdive-state-card="API"] [data-docdive-field-chip="items"]')).not.toHaveAttribute("data-changed", "");
+      await expect(strip.locator('[data-docdive-state-card="OrdersDB"] [data-docdive-field-chip="id"] .v')).toHaveText("42");
+      // The card title selects the element; the inspector shows the same state.
+      await page.click(q('[data-docdive-state-owner="OrdersDB"]'));
+      await expect(page.locator(q("[data-docdive-title]"))).toHaveText("OrdersDB");
+      await expect(page.locator(q('[data-docdive-field="state"] [data-docdive-field-chip="status"] .v'))).toHaveText("paid");
+      // Entity mode: Order's trail, past and future; a trail step jumps.
+      await page.click(q('[data-docdive-state-mode="entities"]'));
+      const order = strip.locator('[data-docdive-trail="Order"]');
+      await expect(order.locator("li")).toHaveCount(5);
+      await expect(order.locator("li[data-future]")).toHaveCount(0);
+      await order.locator('[data-docdive-trail-step="1"]').click();
+      await expect(page.locator(q("[data-docdive-step]"))).toHaveText("1");
+      await expect(order.locator("li[data-future]")).toHaveCount(4);
+      // A child page shows only its own state.
+      await open(page, "architecture/orders-db.md", `?docdive-scenario=${SCENARIO}&docdive-step=6`);
+      await expect(page.locator(q("[data-docdive-state-card]"))).toHaveCount(1);
+      await expect(page.locator(q('[data-docdive-state-card="OrdersDB"]'))).toBeVisible();
+    });
+
     test(`T10 copy link restores selection and trace (${site.name})`, async ({ page, context }) => {
       await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: site.origin });
       const copyLink = async () => {
@@ -174,8 +212,8 @@ for (const site of SITES) {
       await page.click(q('[data-docdive-node="OrderService"]'));
       expect(await copyLink()).toBe(url("architecture/system.md", "?docdive-select=OrderService"));
 
-      await page.click(q("[data-docdive-next]"));
-      await page.click(q("[data-docdive-next]"));
+      await next(page);
+      await next(page);
       const link = await copyLink();
       expect(link).toBe(url("architecture/system.md", `?docdive-select=OrderService&docdive-scenario=${SCENARIO}&docdive-step=2`));
 

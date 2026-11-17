@@ -113,6 +113,86 @@ export function panelFields(index: Index, selected: string): [string, string[]][
 // A step as a sentence: "A → B · label", or "B replies label to A" for a return.
 export const stepSentence = (s: Step): string => (s.isReturn ? `${s.from} replies ${s.label} to ${s.to}` : `${s.from} → ${s.to} · ${s.label}`);
 
+// ---- state through the steps ------------------------------------------------------------------
+
+export interface StateField {
+  k: string;
+  v: string;
+  /** Set by the note at the current step. */
+  changed: boolean;
+}
+/** What one participant holds for one entity at a step. */
+export interface StateCard {
+  over: string;
+  entity?: string;
+  fields: StateField[];
+  text: string;
+  /** Touched by a note at the current step. */
+  changed: boolean;
+}
+
+// State of every participant at `step` (0 = initial state only): notes up to `step` merged field by field, later
+// wins; one card per participant and entity, in order of first appearance.
+export function stateAt(index: Index, scenarioId: string, step: number): StateCard[] {
+  const sc = index.scenarios[scenarioId];
+  if (!sc) return [];
+  const cards = new Map<string, { over: string; entity?: string; fields: Map<string, { v: string; at: number }>; text: string; at: number }>();
+  const notesAt: [number, StateNote[]][] = [[0, sc.initial ?? []], ...sc.steps.slice(0, step).map((s, i): [number, StateNote[]] => [i + 1, s.notes ?? []])];
+  for (const [at, notes] of notesAt) {
+    for (const note of notes) {
+      for (const over of note.over) {
+        const key = `${over}\u0000${note.entity ?? ""}`;
+        const card = cards.get(key) ?? { over, entity: note.entity, fields: new Map(), text: "", at };
+        for (const [k, v] of Object.entries(note.fields ?? {})) card.fields.set(k, { v, at });
+        if (note.text) card.text = note.text;
+        card.at = at;
+        cards.set(key, card);
+      }
+    }
+  }
+  return [...cards.values()].map((c) => ({
+    over: c.over,
+    entity: c.entity,
+    fields: [...c.fields].map(([k, { v, at }]) => ({ k, v, changed: at === step })),
+    text: c.text,
+    changed: c.at === step,
+  }));
+}
+
+/** One change of an entity: at `step` (0 = initial), on `over`. */
+export interface TrailItem {
+  step: number;
+  over: string;
+  fields: Record<string, string>;
+}
+
+// Every entity's changes in step order: the "living through the process" view (past, now and future alike).
+export function entityTrail(index: Index, scenarioId: string): Map<string, TrailItem[]> {
+  const sc = index.scenarios[scenarioId];
+  const out = new Map<string, TrailItem[]>();
+  if (!sc) return out;
+  const notesAt: [number, StateNote[]][] = [[0, sc.initial ?? []], ...sc.steps.map((s, i): [number, StateNote[]] => [i + 1, s.notes ?? []])];
+  for (const [step, notes] of notesAt) {
+    for (const note of notes) {
+      if (!note.entity) continue;
+      const items = out.get(note.entity) ?? [];
+      for (const over of note.over) items.push({ step, over, fields: note.fields ?? {} });
+      out.set(note.entity, items);
+    }
+  }
+  return out;
+}
+
+// A scenario carries state when any note exists.
+export const hasState = (index: Index, scenarioId: string): boolean => {
+  const sc = index.scenarios[scenarioId];
+  return Boolean(sc && ((sc.initial?.length ?? 0) > 0 || sc.steps.some((s) => s.notes?.length)));
+};
+
+// Steps (1-based) whose notes write state, for the marks on the rail.
+export const stateSteps = (index: Index, scenarioId: string): number[] =>
+  (index.scenarios[scenarioId]?.steps ?? []).flatMap((s, i) => (s.notes?.length ? [i + 1] : []));
+
 // ---- overview ---------------------------------------------------------------------------------
 
 export interface TreeNode {
@@ -327,6 +407,11 @@ export function drawnProxy(index: Index, diagram: DiagramEntry, id: string): str
   }
   return null;
 }
+
+// A diagram shows the state of what it draws (itself or via a drawn ancestor) or owns: the DB page shows the DB
+// row, not the whole flow. A sequence diagram shows every holder.
+export const relevantHolder = (index: Index, diagram: DiagramEntry, id: string): boolean =>
+  diagram.type === "sequence" || drawnProxy(index, diagram, id) !== null || ownerChain(index, diagram.id).includes(id);
 
 // "Scenario passes through X" for an ancestor of the diagram's owner that the step involves but the diagram does not draw.
 function through(throughHost: Element, index: Index, diagram: DiagramEntry, s: Step): void {

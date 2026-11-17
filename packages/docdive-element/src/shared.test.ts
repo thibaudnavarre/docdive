@@ -7,7 +7,12 @@ import {
   divable,
   drawnProxy,
   edgeOccurrence,
+  entityTrail,
   hasSeveralFences,
+  hasState,
+  relevantHolder,
+  stateAt,
+  stateSteps,
   hostTheme,
   motionAllowed,
   panelFields,
@@ -310,5 +315,65 @@ describe("inspector and overview helpers", () => {
     expect(nodes[1]!.attrs["data-docdive-divable"]).toBe("");
     expect(nodes[1]!.attrs["aria-label"]).toBe("Orders, has its own diagram");
     expect(nodes[2]!.attrs).toEqual({});
+  });
+});
+
+describe("state through the steps", () => {
+  const index: Index = {
+    diagrams: [
+      { id: "sys.md#0", type: "flowchart", nodes: ["API", "Orders"], edges: [["API", "Orders"]] },
+      { id: "db.md#0", type: "flowchart", nodes: ["Pool"], edges: [] },
+      { id: "flow.md#0", type: "sequence", nodes: ["API", "Orders", "DB"], edges: [] },
+    ],
+    elements: { API: { doc: null }, Orders: { doc: null }, DB: { doc: "db.md", parent: "system" }, Pool: { doc: null, parent: "DB" }, system: { doc: "sys.md" } },
+    scenarios: {
+      flow: {
+        doc: "flow.md",
+        initial: [{ over: ["API"], entity: "Cart", fields: { items: "2" }, text: "" }],
+        steps: [
+          { ...fwd("API", "Orders"), notes: [{ over: ["Orders"], entity: "Order", fields: { status: "pending" }, text: "" }] },
+          fwd("Orders", "DB"),
+          { ...fwd("Orders", "DB"), notes: [{ over: ["DB", "API"], entity: "Order", fields: { status: "paid", id: "42" }, text: "row in orders" }] },
+        ],
+      },
+      silent: { doc: "s.md", steps: [fwd("A", "B")] },
+    },
+  };
+
+  it("merges notes up to the step, later wins, and flags what the current step changed", () => {
+    expect(stateAt(index, "flow", 0)).toEqual([{ over: "API", entity: "Cart", fields: [{ k: "items", v: "2", changed: true }], text: "", changed: true }]);
+    const at1 = stateAt(index, "flow", 1);
+    expect(at1.map((c) => [c.over, c.entity, c.changed])).toEqual([["API", "Cart", false], ["Orders", "Order", true]]);
+    const at3 = stateAt(index, "flow", 3);
+    expect(at3.map((c) => `${c.over}/${c.entity}:${c.changed}`)).toEqual(["API/Cart:false", "Orders/Order:false", "DB/Order:true", "API/Order:true"]);
+    expect(at3[2]).toMatchObject({ text: "row in orders", fields: [{ k: "status", v: "paid", changed: true }, { k: "id", v: "42", changed: true }] });
+    expect(stateAt(index, "flow", 2)[1]?.fields).toEqual([{ k: "status", v: "pending", changed: false }]);
+    expect(stateAt(index, "nope", 1)).toEqual([]);
+  });
+
+  it("builds each entity's trail across participants, initial state at step 0", () => {
+    const trail = entityTrail(index, "flow");
+    expect([...trail.keys()]).toEqual(["Cart", "Order"]);
+    expect(trail.get("Order")).toEqual([
+      { step: 1, over: "Orders", fields: { status: "pending" } },
+      { step: 3, over: "DB", fields: { status: "paid", id: "42" } },
+      { step: 3, over: "API", fields: { status: "paid", id: "42" } },
+    ]);
+    expect(trail.get("Cart")?.[0]?.step).toBe(0);
+  });
+
+  it("knows which scenarios carry state and which steps write it", () => {
+    expect(hasState(index, "flow")).toBe(true);
+    expect(hasState(index, "silent")).toBe(false);
+    expect(stateSteps(index, "flow")).toEqual([1, 3]);
+  });
+
+  it("shows a holder on the diagrams that draw it, draw an ancestor of it, or belong to it", () => {
+    const [sys, db, seq] = index.diagrams as [DiagramEntry, DiagramEntry, DiagramEntry];
+    expect(relevantHolder(index, sys, "API")).toBe(true);
+    expect(relevantHolder(index, sys, "Pool")).toBe(false);
+    expect(relevantHolder(index, db, "DB")).toBe(true);
+    expect(relevantHolder(index, db, "API")).toBe(false);
+    expect(relevantHolder(index, seq, "Pool")).toBe(true);
   });
 });

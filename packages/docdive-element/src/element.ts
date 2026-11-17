@@ -11,9 +11,14 @@ import {
   divable,
   drawsElement,
   el,
+  entityTrail,
   hasSeveralFences,
+  hasState,
   panelFields,
+  relevantHolder,
   sourceHref,
+  stateAt,
+  stateSteps,
   stepSentence,
   touchesDiagram,
   urlStateOwner,
@@ -21,6 +26,8 @@ import {
   type DiagramEntry,
   INDEX_VERSION,
   type Index,
+  type StateCard,
+  type StateField,
 } from "./shared.js";
 
 export { resolveMermaid, type MermaidApi } from "./mermaid-resolver.js";
@@ -41,7 +48,10 @@ export { resolveMermaid, type MermaidApi } from "./mermaid-resolver.js";
 //   doc, n      Doc path and fence order (default: found from the page URL via the map; n = order among
 //               <docdive-diagram> elements on the page)
 //
-// Scenario trace: a player in the shadow root, shown only when a scenario touches the diagram. Initial state
+// Scenario trace: a player in the shadow root, shown only when a scenario touches the diagram: one play/pause glyph,
+// a scrubbable rail (`data-docdive-scrub`, a slider; `data-docdive-mark` per step), the `n / N` counter, the step
+// sentence, and under it the state strip (`data-docdive-state`): what each drawn participant holds at this step,
+// from the scenario's `Note over X: Entity k=v …` lines, by participant or by entity. Initial state
 // comes from the page query (`docdive-scenario`, `docdive-step`), restored paused, and `docdive-select` (an element ID
 // shown in this diagram) reopens its panel (the panel's "Copy link" builds such a URL); invalid values are ignored or
 // clamped. On a page with several fences, `docdive-diagram` (fence index) names the diagram that owns this state;
@@ -71,6 +81,7 @@ const normPath = (u: string): string =>
 const STYLE = `
 ${TOKEN_STYLE}
 :host { container-type: inline-size; }
+[hidden] { display: none !important; }
 [data-docdive-layout] { display: grid; gap: var(--docdive-space); grid-template-areas: "crumbs" "trace" "error" "diagram" "panel"; }
 [data-docdive-breadcrumb] { grid-area: crumbs; }
 [data-docdive-trace] { grid-area: trace; }
@@ -95,7 +106,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .icon { width: 2.25em; height: 2.25em; padding: 0; justify-content: center; }
 .btn.primary, button.primary { background: var(--docdive-accent); color: var(--docdive-on-accent); border-color: var(--docdive-accent); font-weight: 600; justify-self: start; }
 .btn.primary:hover, button.primary:hover { background: color-mix(in srgb, var(--docdive-accent) 85%, #000); border-color: transparent; color: var(--docdive-on-accent); }
-:is(button, select, a, [data-docdive-node], [data-docdive-pill]):focus-visible { outline: 2px solid var(--docdive-accent); outline-offset: 2px; }
+:is(button, select, a, [data-docdive-node], [data-docdive-scrub]):focus-visible { outline: 2px solid var(--docdive-accent); outline-offset: 2px; }
 [data-docdive-through] { display: inline-flex; align-items: center; padding: .1em .7em; border-radius: 999px; font-size: .86em; line-height: 1.6; background: color-mix(in srgb, var(--docdive-accent) 12%, transparent); color: var(--docdive-accent); }
 
 /* Breadcrumb */
@@ -105,18 +116,68 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 [data-docdive-breadcrumb] a:hover { color: var(--docdive-accent); text-decoration: underline; }
 [data-docdive-breadcrumb] [aria-current] { font-weight: 650; font-size: 1.3em; letter-spacing: -.02em; }
 
-/* Scenario player */
-[data-docdive-trace] { display: grid; gap: .6em; }
+/* Scenario player: glyph + rail + counter on one row, the sentence under it, then the state strip. */
+[data-docdive-trace] { display: grid; gap: .75em; }
+.rail-row { display: flex; align-items: center; gap: 1em; }
 [data-docdive-step-label] { margin: 0; font-size: 1.25em; line-height: 1.35; letter-spacing: -.01em; font-weight: 600; }
 [data-docdive-step-label] .muted { font-weight: 400; font-size: .8em; }
-[data-docdive-pills] { display: flex; flex-wrap: wrap; gap: .3em; margin: 0; padding: 0; list-style: none; }
-[data-docdive-pill] { width: 2em; height: 2em; padding: 0; justify-content: center; font-size: .86em; color: var(--docdive-fg-muted); }
-[data-docdive-pill][aria-current] { background: var(--docdive-accent); color: var(--docdive-on-accent); border-color: var(--docdive-accent); }
-.transport { display: flex; align-items: center; gap: .6em; flex-wrap: wrap; }
-.transport > span { display: inline-flex; gap: .25em; }
-[data-docdive-counter] { font-variant-numeric: tabular-nums; color: var(--docdive-fg-muted); white-space: nowrap; }
+[data-docdive-counter] { font-variant-numeric: tabular-nums; color: var(--docdive-fg-muted); white-space: nowrap; font-size: .93em; }
 [data-docdive-step] { color: var(--docdive-fg); font-weight: 650; }
 [data-docdive-through-host]:empty { display: none; }
+/* One button: ▶ while paused (data-docdive-play), ⏸ while playing (data-docdive-pause); the icon is CSS. */
+.glyph { background: var(--docdive-accent); border-color: var(--docdive-accent); color: var(--docdive-on-accent); flex: none; }
+.glyph:hover:not(:disabled) { background: color-mix(in srgb, var(--docdive-accent) 85%, #000); border-color: transparent; box-shadow: var(--docdive-shadow); }
+.glyph-icon { display: block; width: 0; height: 0; border-style: solid; border-width: 7px 0 7px 12px; border-color: transparent transparent transparent currentColor; margin-left: 3px; transition: border-width var(--docdive-duration), margin var(--docdive-duration); }
+[data-docdive-pause] .glyph-icon { width: 4px; height: 14px; border-width: 0 4px; border-color: currentColor; margin-left: 0; }
+/* Rail: the slider. Track + fill behind, one mark per step on top (28px targets, 10px dots). */
+[data-docdive-scrub] { position: relative; flex: 1; height: 2.25em; min-width: 8em; cursor: pointer; touch-action: none; border-radius: 999px; }
+.rail-track { position: absolute; left: 0; right: 0; top: 50%; height: 4px; transform: translateY(-50%); border-radius: 999px; background: var(--docdive-border); overflow: hidden; }
+.rail-fill { height: 100%; width: 0; background: var(--docdive-accent); transition: width var(--docdive-duration) ease-out; }
+.marks { position: absolute; inset: 0; margin: 0; padding: 0; list-style: none; }
+.marks li { position: absolute; top: 50%; transform: translate(-50%, -50%); }
+[data-docdive-mark] { display: block; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 999px; background: transparent; cursor: pointer; position: relative; }
+[data-docdive-mark]::before { content: ""; position: absolute; inset: 50%; width: 10px; height: 10px; transform: translate(-50%, -50%); border-radius: 999px; background: var(--docdive-surface); border: 2px solid var(--docdive-node-stroke); transition: all var(--docdive-duration); }
+[data-docdive-mark][data-has-state]::after { content: ""; position: absolute; inset: 50%; width: 4px; height: 4px; transform: translate(-50%, -50%); border-radius: 999px; background: var(--docdive-fg-muted); }
+[data-docdive-mark]:is([data-past], [aria-current])::after { background: var(--docdive-on-accent); }
+[data-docdive-mark][data-past]::before { background: var(--docdive-accent); border-color: var(--docdive-accent); }
+[data-docdive-mark]:hover::before { transform: translate(-50%, -50%) scale(1.3); border-color: var(--docdive-accent); }
+[data-docdive-mark][aria-current]::before { width: 16px; height: 16px; background: var(--docdive-accent); border-color: var(--docdive-surface); box-shadow: 0 0 0 2px var(--docdive-accent), 0 0 0 6px color-mix(in srgb, var(--docdive-accent) 12%, transparent); }
+/* State strip: cards per participant, or one trail per entity. */
+[data-docdive-state] { display: grid; gap: .75em; padding-top: .75em; border-top: 1px solid var(--docdive-border); }
+.state-head { display: flex; justify-content: space-between; align-items: center; gap: .5em; flex-wrap: wrap; }
+.state-head .label { font-size: .78em; text-transform: uppercase; letter-spacing: .06em; color: var(--docdive-fg-muted); font-weight: 600; }
+.mode { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--docdive-border); border-radius: 999px; }
+.mode button { border: 0; background: transparent; padding: .2em .8em; font-size: .86em; color: var(--docdive-fg-muted); }
+.mode button[aria-pressed="true"] { background: var(--docdive-fg); color: var(--docdive-bg); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .75em; }
+[data-docdive-state-card] { display: grid; gap: .5em; align-content: start; padding: .75em; border-radius: calc(var(--docdive-radius) - 4px); background: var(--docdive-bg); border: 1px solid var(--docdive-border); transition: border-color var(--docdive-duration), box-shadow var(--docdive-duration); }
+[data-docdive-state-card] header { display: flex; justify-content: space-between; align-items: center; gap: .5em; }
+[data-docdive-state-card][data-changed] { border-color: var(--docdive-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--docdive-accent) 12%, transparent); }
+.owner { font: inherit; font-weight: 650; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; border-radius: 4px; }
+.owner:hover { color: var(--docdive-accent); text-decoration: underline; }
+.chip.entity { background: transparent; border: 1px solid var(--docdive-border); font-weight: 650; font-size: .8em; }
+.fields { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: flex-start; }
+[data-docdive-field-chip] { display: inline-flex; align-items: baseline; gap: 4px; padding: 1px 8px; border-radius: 6px; background: var(--docdive-surface-2); font-family: var(--docdive-font-mono); font-size: .82em; line-height: 1.6; }
+[data-docdive-field-chip] .k { color: var(--docdive-fg-muted); }
+[data-docdive-field-chip] .k::after { content: "="; margin-left: 2px; }
+[data-docdive-field-chip][data-changed] { background: color-mix(in srgb, var(--docdive-accent) 12%, transparent); color: var(--docdive-accent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--docdive-accent) 35%, transparent); }
+[data-docdive-field-chip][data-changed] .k { color: color-mix(in srgb, var(--docdive-accent) 70%, var(--docdive-fg-muted)); }
+.state-text { margin: 0; font-size: .86em; color: var(--docdive-fg-muted); }
+.state-empty { margin: 0; color: var(--docdive-fg-muted); }
+.trails { display: grid; gap: 1em; }
+.trail-row { display: grid; grid-template-columns: 180px 1fr; gap: .75em; align-items: start; }
+.trail-head { display: grid; gap: 4px; justify-items: start; font-size: .9em; color: var(--docdive-fg-muted); }
+.trail-row[data-changed] .chip.entity { border-color: var(--docdive-accent); color: var(--docdive-accent); }
+.trail { display: flex; flex-wrap: wrap; gap: 6px 0; margin: 0; padding: 0; list-style: none; align-items: center; }
+.trail li { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 2px; border-radius: 999px; border: 1px solid transparent; transition: border-color var(--docdive-duration), color var(--docdive-duration); }
+.trail li + li::before { content: "→"; color: var(--docdive-fg-muted); margin-right: 6px; }
+.trail li[data-future], .trail li[data-future] [data-docdive-field-chip] { color: var(--docdive-fg-muted); }
+.trail li[data-now] { border-color: var(--docdive-accent); background: color-mix(in srgb, var(--docdive-accent) 12%, transparent); }
+.trail li[data-now] [data-docdive-field-chip] { background: var(--docdive-surface); }
+[data-docdive-trail-step] { width: 28px; height: 28px; padding: 0; justify-content: center; font-size: .78em; color: var(--docdive-fg-muted); }
+.trail li:not([data-future]) [data-docdive-trail-step] { background: var(--docdive-accent); color: var(--docdive-on-accent); border-color: var(--docdive-accent); }
+.trail-owner { font-size: .86em; font-weight: 600; }
+@container (max-width: 720px) { .trail-row { grid-template-columns: 1fr; } }
 
 /* Inspector */
 [data-docdive-panel] { display: grid; gap: calc(var(--docdive-space) * .85); align-content: start; }
@@ -133,6 +194,9 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .actions a { color: var(--docdive-accent); text-decoration: none; }
 .actions a:hover { text-decoration: underline; }
 [data-docdive-copy-status], [data-docdive-copy-link-status] { font-size: .86em; color: var(--docdive-ok); }
+[data-docdive-field="state"] { padding: .6em .75em; border-radius: calc(var(--docdive-radius) - 4px); background: var(--docdive-bg); border: 1px solid var(--docdive-border); justify-items: start; gap: .5em; }
+[data-docdive-field="state"]:empty { display: none; }
+[data-docdive-field="state"] > div { display: grid; gap: .4em; justify-items: start; }
 [data-docdive-hint] { margin: 0; }
 
 /* Mermaid defaults. Its own <style> uses #id selectors, so these need !important to apply; :where() keeps them at zero
@@ -221,13 +285,17 @@ export class DocdiveDiagram extends HTMLElement {
   private timer?: ReturnType<typeof setInterval>;
   private traceBar = el("div", { "data-docdive-trace": "", part: "trace", "aria-label": "Scenario player" });
   private picker = el("select", { "data-docdive-scenario-picker": "", "aria-label": "Scenario" });
-  private prevBtn = el("button", { "data-docdive-prev": "", class: "icon", "aria-label": "Previous step", title: "Previous step" }, "\u2039");
-  private nextBtn = el("button", { "data-docdive-next": "", class: "icon", "aria-label": "Next step", title: "Next step" }, "\u203A");
-  // One toggle: carries `data-docdive-play` while paused and `data-docdive-pause` while playing.
-  private playBtn = el("button", { "data-docdive-play": "", class: "icon", "aria-label": "Play", title: "Play" }, "\u25B6");
+  // One toggle: carries `data-docdive-play` while paused and `data-docdive-pause` while playing; the icon is CSS.
+  private playBtn = el("button", { "data-docdive-play": "", class: "icon glyph", "aria-label": "Play", title: "Play" });
   private stepNo = el("span", { "data-docdive-step": "" }, "0");
   private stepTotal = el("span", {}, " / 0");
-  private pills = el("ol", { "data-docdive-pills": "", "aria-label": "Steps" });
+  // The rail is the slider (one focus stop); each step is a mark on it.
+  private rail = el("div", { "data-docdive-scrub": "", role: "slider", tabindex: "0", "aria-label": "Scenario step", "aria-valuemin": "0" });
+  private railFill = el("div", { class: "rail-fill" });
+  private marks = el("ol", { class: "marks", "aria-hidden": "true" });
+  private strip = el("div", { "data-docdive-state": "", part: "state", "aria-label": "State at this step" });
+  private stripMode: "participants" | "entities" = "participants";
+  private panelState = el("div", { "data-docdive-field": "state" });
   private stepLabel = el("p", { "data-docdive-step-label": "", "aria-live": "polite" });
   private crumbs = el("nav", { "data-docdive-breadcrumb": "", part: "crumbs", "aria-label": "Breadcrumb" });
   private crumbLinks: [HTMLAnchorElement, string][] = [];
@@ -250,30 +318,67 @@ export class DocdiveDiagram extends HTMLElement {
     });
     const counter = el("span", { "data-docdive-counter": "" });
     counter.append(this.stepNo, this.stepTotal);
-    const buttons = el("span");
-    buttons.append(this.prevBtn, this.playBtn, this.nextBtn);
-    const transport = el("div", { class: "transport" });
-    transport.append(this.picker, buttons, counter);
-    this.traceBar.append(this.stepLabel, this.pills, transport, this.throughHost);
+    this.playBtn.append(el("span", { class: "glyph-icon", "aria-hidden": "true" }));
+    const track = el("div", { class: "rail-track" });
+    track.append(this.railFill);
+    this.rail.append(track, this.marks);
+    const railRow = el("div", { class: "rail-row" });
+    railRow.append(this.playBtn, this.rail, counter, this.picker);
+    this.traceBar.append(railRow, this.stepLabel, this.throughHost, this.strip);
     this.picker.addEventListener("change", () => {
       this.stopPlay();
       this.scenario = this.picker.value;
       this.setStep(0);
     });
-    this.prevBtn.addEventListener("click", () => this.setStep(this.step - 1));
-    this.nextBtn.addEventListener("click", () => this.setStep(this.step + 1));
     this.playBtn.addEventListener("click", () => (this.timer ? this.stopPlay() : this.play()));
-    this.pills.addEventListener("click", (ev) => {
-      const n = (ev.target as Element).closest("[data-docdive-pill]")?.getAttribute("data-docdive-pill");
+    this.marks.addEventListener("click", (ev) => {
+      const n = (ev.target as Element).closest("[data-docdive-mark]")?.getAttribute("data-docdive-mark");
       if (!n) return;
       this.stopPlay();
       this.setStep(Number(n));
     });
+    // Drag anywhere on the rail: the pointer's x picks the nearest step. Marks keep their own click.
+    this.rail.addEventListener("pointerdown", (ev) => {
+      if ((ev.target as Element).closest("[data-docdive-mark]")) return;
+      this.rail.setPointerCapture(ev.pointerId);
+      this.stopPlay();
+      this.scrubTo(ev.clientX);
+      const move = (e: PointerEvent) => this.scrubTo(e.clientX);
+      this.rail.addEventListener("pointermove", move);
+      this.rail.addEventListener("pointerup", () => this.rail.removeEventListener("pointermove", move), { once: true });
+    });
     this.traceBar.addEventListener("keydown", (ev) => {
       if ((ev.target as Element).tagName === "SELECT") return;
-      if (ev.key === "ArrowRight") this.setStep(this.step + 1);
-      if (ev.key === "ArrowLeft") this.setStep(this.step - 1);
+      const next = { ArrowRight: this.step + 1, ArrowLeft: this.step - 1, Home: 0, End: this.steps().length }[ev.key];
+      if (next === undefined) return;
+      ev.preventDefault();
+      this.stopPlay();
+      this.setStep(next);
     });
+    this.strip.addEventListener("click", (ev) => {
+      const t = ev.target as Element;
+      const mode = t.closest("[data-docdive-state-mode]")?.getAttribute("data-docdive-state-mode");
+      if (mode === "participants" || mode === "entities") {
+        this.stripMode = mode;
+        return this.renderStrip();
+      }
+      const owner = t.closest("[data-docdive-state-owner]")?.getAttribute("data-docdive-state-owner");
+      if (owner && this.host.querySelector(`[data-docdive-node="${CSS.escape(owner)}"]`)) {
+        this.selected = owner;
+        return this.renderPanel();
+      }
+      const jump = t.closest("[data-docdive-trail-step]")?.getAttribute("data-docdive-trail-step");
+      if (jump) {
+        this.stopPlay();
+        this.setStep(Number(jump));
+      }
+    });
+  }
+
+  private scrubTo(clientX: number): void {
+    const r = this.rail.getBoundingClientRect();
+    const x = Math.min(Math.max(0, clientX - r.left), r.width);
+    this.setStep(Math.round((x / r.width) * this.steps().length));
   }
 
   disconnectedCallback(): void {
@@ -404,6 +509,7 @@ export class DocdiveDiagram extends HTMLElement {
       return;
     }
     this.picker.replaceChildren(...ids.map((id) => new Option(id, id)));
+    this.picker.hidden = ids.length === 1;
     const q = new URLSearchParams(location.search);
     const wanted = q.get("docdive-scenario");
     const owner = wanted === null || !this.page ? undefined : urlStateOwner(index, this.page.doc, qualifier(q), (d) => touchesDiagram(index, wanted, d));
@@ -424,31 +530,145 @@ export class DocdiveDiagram extends HTMLElement {
     this.step = Math.max(0, Math.min(all.length, n));
     this.stepNo.textContent = String(this.step);
     this.stepTotal.textContent = ` / ${all.length}`;
-    this.prevBtn.disabled = this.step === 0;
-    this.nextBtn.disabled = this.step >= all.length;
-    if (this.pills.getAttribute("data-for") !== this.scenario) {
-      this.pills.setAttribute("data-for", this.scenario);
-      this.pills.replaceChildren(
-        ...all.map((s, i) => {
-          const li = el("li");
-          li.append(el("button", { "data-docdive-pill": String(i + 1), title: stepSentence(s), "aria-label": `Step ${i + 1}: ${stepSentence(s)}` }, String(i + 1)));
+    const s = all[this.step - 1];
+    this.rail.setAttribute("aria-valuemax", String(all.length));
+    this.rail.setAttribute("aria-valuenow", String(this.step));
+    this.rail.setAttribute("aria-valuetext", s ? `Step ${this.step} of ${all.length}: ${stepSentence(s)}` : "Before the first step");
+    this.railFill.style.width = `${(this.step / Math.max(1, all.length)) * 100}%`;
+    if (this.marks.getAttribute("data-for") !== this.scenario) {
+      this.marks.setAttribute("data-for", this.scenario);
+      const withState = this.index ? stateSteps(this.index, this.scenario) : [];
+      this.marks.replaceChildren(
+        ...all.map((st, i) => {
+          const li = el("li", { style: `left: ${((i + 1) / all.length) * 100}%` });
+          const mark = el("button", { "data-docdive-mark": String(i + 1), tabindex: "-1", title: stepSentence(st), "aria-label": `Step ${i + 1}: ${stepSentence(st)}` });
+          if (withState.includes(i + 1)) mark.setAttribute("data-has-state", "");
+          li.append(mark);
           return li;
         }),
       );
     }
-    for (const pill of this.pills.querySelectorAll("[data-docdive-pill]")) {
-      if (pill.getAttribute("data-docdive-pill") === String(this.step)) pill.setAttribute("aria-current", "step");
-      else pill.removeAttribute("aria-current");
+    for (const mark of this.marks.querySelectorAll("[data-docdive-mark]")) {
+      const k = Number(mark.getAttribute("data-docdive-mark"));
+      mark.toggleAttribute("data-past", k < this.step);
+      if (k === this.step) mark.setAttribute("aria-current", "step");
+      else mark.removeAttribute("aria-current");
     }
-    const s = all[this.step - 1];
     this.stepLabel.replaceChildren();
     if (s) this.stepLabel.textContent = stepSentence(s);
     else this.stepLabel.append(el("span", { class: "muted" }, "Press play or step through the scenario."));
     if (this.index && this.diagram) applyTrace(this.host, this.throughHost, this.index, this.diagram, this.scenario, this.step);
+    this.renderStrip();
+    this.renderPanelState();
     const open = this.panel.querySelector("[data-docdive-open]");
     const url = this.selected ? this.openUrl(this.selected) : undefined;
     if (open && url) open.setAttribute("href", url);
     for (const [a, id] of this.crumbLinks) a.setAttribute("href", this.openUrl(id) ?? "");
+  }
+
+  // `k = v` chip; tinted when the current step set it.
+  private fieldChip(f: StateField): HTMLElement {
+    const chip = el("span", { "data-docdive-field-chip": f.k });
+    if (f.changed) chip.setAttribute("data-changed", "");
+    chip.append(el("span", { class: "k" }, f.k), el("span", { class: "v" }, f.v));
+    return chip;
+  }
+
+  // Participant name as a button that selects it when this diagram draws it, plain text otherwise.
+  private ownerName(id: string): HTMLElement {
+    const drawn = this.host.querySelector(`[data-docdive-node="${CSS.escape(id)}"]`);
+    return drawn ? el("button", { "data-docdive-state-owner": id, class: "owner" }, id) : el("span", { class: "owner" }, id);
+  }
+
+  // Cards this diagram should show: what it draws (or a drawn ancestor of) or owns.
+  private stateCards(): StateCard[] {
+    const { index, diagram } = this;
+    if (!index || !diagram) return [];
+    return stateAt(index, this.scenario, this.step).filter((c) => relevantHolder(index, diagram, c.over));
+  }
+
+  // The strip under the sentence: by participant (cards) or by entity (trails). Absent when the scenario has no notes.
+  private renderStrip(): void {
+    const { index } = this;
+    if (!index || !hasState(index, this.scenario)) return void this.strip.replaceChildren();
+    const head = el("div", { class: "state-head" });
+    head.append(el("span", { class: "label" }, this.step ? `State at step ${this.step}` : "Initial state"));
+    const mode = el("div", { class: "mode", role: "group", "aria-label": "Group state by" });
+    for (const [m, label] of [["participants", "By participant"], ["entities", "By entity"]] as const) {
+      mode.append(el("button", { "data-docdive-state-mode": m, "aria-pressed": String(this.stripMode === m) }, label));
+    }
+    head.append(mode);
+    this.strip.replaceChildren(head, this.stripMode === "participants" ? this.participantCards() : this.entityTrails());
+  }
+
+  private participantCards(): HTMLElement {
+    const cards = this.stateCards();
+    const grid = el("div", { class: "cards" });
+    if (cards.length === 0) {
+      grid.append(el("p", { class: "state-empty" }, this.step === 0 ? "No state yet. Step through the scenario." : "Nothing drawn here holds state yet."));
+      return grid;
+    }
+    for (const c of cards) {
+      const card = el("article", { "data-docdive-state-card": c.over });
+      if (c.changed) card.setAttribute("data-changed", "");
+      const header = el("header");
+      header.append(this.ownerName(c.over));
+      if (c.entity) header.append(el("span", { class: "chip entity" }, c.entity));
+      const fields = el("div", { class: "fields" });
+      fields.append(...c.fields.map((f) => this.fieldChip(f)));
+      card.append(header, fields);
+      if (c.text) card.append(el("p", { class: "state-text" }, c.text));
+      grid.append(card);
+    }
+    return grid;
+  }
+
+  private entityTrails(): HTMLElement {
+    const index = this.index as Index;
+    const list = el("div", { class: "trails" });
+    for (const [entity, items] of entityTrail(index, this.scenario)) {
+      const now = items.filter((i) => i.step <= this.step).at(-1);
+      const row = el("div", { class: "trail-row", "data-docdive-trail": entity });
+      if (now?.step === this.step) row.setAttribute("data-changed", "");
+      const head = el("div", { class: "trail-head" });
+      head.append(el("span", { class: "chip entity" }, entity));
+      const where = el("span");
+      if (now) where.append("lives at ", this.ownerName(now.over));
+      else where.textContent = "not created yet";
+      head.append(where);
+      const trail = el("ol", { class: "trail" });
+      for (const it of items) {
+        const li = el("li");
+        if (it.step > this.step) li.setAttribute("data-future", "");
+        if (it.step === this.step) li.setAttribute("data-now", "");
+        const fields = el("span", { class: "fields" });
+        fields.append(...Object.entries(it.fields).map(([k, v]) => this.fieldChip({ k, v, changed: false })));
+        li.append(el("button", { "data-docdive-trail-step": String(it.step), class: "icon", "aria-label": `Go to step ${it.step}` }, String(it.step)), el("span", { class: "trail-owner" }, `@${it.over}`), fields);
+        trail.append(li);
+      }
+      row.append(head, trail);
+      list.append(row);
+    }
+    return list;
+  }
+
+  // "State at step n" in the inspector: the selected element's cards at this step; empty (hidden) when none.
+  private renderPanelState(): void {
+    this.panelState.replaceChildren();
+    const id = this.selected;
+    if (!id || !this.index || !this.scenario) return;
+    const mine = stateAt(this.index, this.scenario, this.step).filter((c) => c.over === id);
+    if (mine.length === 0) return;
+    this.panelState.append(el("span", { class: "label" }, this.step ? `State at step ${this.step}` : "Initial state"));
+    for (const c of mine) {
+      const card = el("div");
+      if (c.entity) card.append(el("span", { class: "chip entity" }, c.entity));
+      const fields = el("div", { class: "fields" });
+      fields.append(...c.fields.map((f) => this.fieldChip(f)));
+      card.append(fields);
+      if (c.text) card.append(el("span", { class: "state-text" }, c.text));
+      this.panelState.append(card);
+    }
   }
 
   // Root-to-owner trail above the diagram; absent (no DOM) when the owner has no unambiguous ancestor.
@@ -507,7 +727,6 @@ export class DocdiveDiagram extends HTMLElement {
   private setPlaying(on: boolean): void {
     this.playBtn.toggleAttribute("data-docdive-play", !on);
     this.playBtn.toggleAttribute("data-docdive-pause", on);
-    this.playBtn.textContent = on ? "\u23F8" : "\u25B6";
     this.playBtn.setAttribute("aria-label", on ? "Pause" : "Play");
     this.playBtn.setAttribute("title", on ? "Pause" : "Play");
   }
@@ -594,6 +813,8 @@ export class DocdiveDiagram extends HTMLElement {
       this.linkNavigate(open, id);
       this.panel.append(open);
     }
+    this.panel.append(this.panelState);
+    this.renderPanelState();
     for (const [name, values] of panelFields(index, id)) {
       if (values.length === 0) continue;
       const row = el("div", { "data-docdive-field": name });
