@@ -158,7 +158,7 @@ for (const site of SITES) {
         await open(page, "architecture/system.md");
         await page.click(q(`[data-docdive-node="${id}"]`));
         await page.click(q("[data-docdive-copy]"));
-        await expect(page.locator(q("[data-docdive-copy-status]"))).toHaveText("ok");
+        await expect(page.locator(q("[data-docdive-copy-status]"))).toHaveText("Copied");
         expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(contexts[id]);
       });
     }
@@ -167,7 +167,7 @@ for (const site of SITES) {
       await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: site.origin });
       const copyLink = async () => {
         await page.click(q("[data-docdive-copy-link]"));
-        await expect(page.locator(q("[data-docdive-copy-link-status]"))).toHaveText("ok");
+        await expect(page.locator(q("[data-docdive-copy-link-status]"))).toHaveText("Copied");
         return page.evaluate(() => navigator.clipboard.readText());
       };
       await open(page, "architecture/system.md");

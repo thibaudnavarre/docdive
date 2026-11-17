@@ -85,11 +85,12 @@ for (const site of SITES) {
       const scenarios = Object.entries(index.scenarios)
         .filter(([, sc]) => sc.steps.some((s) => s.from === "OrderService" || s.to === "OrderService"))
         .map(([id]) => id);
-      await expect(field(page, "parent")).toHaveText(e.parent!);
-      await expect(field(page, "children")).toHaveText(e.children!.join(", "));
-      await expect(field(page, "appearsIn")).toHaveText(e.appearsIn!.join(", "));
-      await expect(field(page, "scenarios")).toHaveText(scenarios.join(", "));
-      await expect(field(page, "src")).toHaveText(e.src!.join(", "));
+      await expect(field(page, "parent")).toHaveText([e.parent!]);
+      await expect(field(page, "children")).toHaveText(e.children!);
+      // "Appears in" names the diagram owners, not the raw `doc#n` ids.
+      await expect(field(page, "appearsIn")).toHaveText(["system", "checkout-happy-path"]);
+      await expect(field(page, "scenarios")).toHaveText(scenarios);
+      await expect(field(page, "src")).toHaveText(e.src!);
     });
 
     test(`S5 info panel, undocumented element (${site.name})`, async ({ page }) => {
@@ -99,7 +100,7 @@ for (const site of SITES) {
       await page.click('docdive-diagram [data-docdive-node="PaymentGateway"]');
       const e = index.elements["PaymentGateway"]!;
       await expect(field(page, "parent")).toHaveText(e.parent!);
-      await expect(field(page, "appearsIn")).toHaveText(e.appearsIn!.join(", "));
+      await expect(field(page, "appearsIn")).toHaveText(["system", "checkout-happy-path"]);
       await expect(field(page, "scenarios")).toHaveText("checkout-happy-path");
       await expect(field(page, "children")).toHaveCount(0);
       await expect(field(page, "src")).toHaveCount(0);

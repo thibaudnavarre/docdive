@@ -37,10 +37,24 @@ export function flowchartNodeId(svgId: string): string | null {
 
 export const drawsElement = (diagram: DiagramEntry, id: string): boolean => diagram.nodes.includes(id);
 
-export function annotateFlowchart(svg: SVGElement, diagram: DiagramEntry): void {
+// An element can be dived into when it owns a doc of its own.
+export const divable = (index: Index, id: string): boolean => Boolean(index.elements[id]?.doc);
+
+// Marks a rendered node as a docdive element: clickable, keyboard focusable, and `data-docdive-divable` when it
+// has a diagram of its own (the viewer draws those heavier, so a reader sees where a dive is possible).
+function markNode(g: Element, id: string, index: Index): void {
+  g.setAttribute("data-docdive-node", id);
+  g.setAttribute("tabindex", "0");
+  g.setAttribute("role", "button");
+  const deep = divable(index, id);
+  g.setAttribute("aria-label", deep ? `${id}, has its own diagram` : id);
+  if (deep) g.setAttribute("data-docdive-divable", "");
+}
+
+export function annotateFlowchart(svg: SVGElement, diagram: DiagramEntry, index: Index): void {
   for (const g of svg.querySelectorAll<SVGGElement>("g.node")) {
     const id = flowchartNodeId(g.id);
-    if (id && diagram.nodes.includes(id)) g.setAttribute("data-docdive-node", id);
+    if (id && diagram.nodes.includes(id)) markNode(g, id, index);
   }
   // Parallel edges: Mermaid's link counter is not 0,1,... per pair (observed `_0`, `_2`), so the
   // k-th occurrence of a pair in the index maps to the k-th link of that pair by numeric suffix.
@@ -59,21 +73,63 @@ export function annotateFlowchart(svg: SVGElement, diagram: DiagramEntry): void 
   }
 }
 
-// Info-panel rows for an element; empty rows are skipped by the caller.
+// Scenarios in which `id` sends or receives a message.
+export const scenariosOf = (index: Index, id: string): string[] =>
+  Object.entries(index.scenarios)
+    .filter(([, sc]) => sc.steps.some((st) => st.from === id || st.to === id))
+    .map(([sid]) => sid);
+
+// Element owning `doc`: the one whose `doc` it is, else the scenario written there; undefined when neither.
+const docOwner = (index: Index, doc: string): string | undefined =>
+  Object.entries(index.elements).find(([, e]) => e.doc === doc)?.[0] ?? Object.entries(index.scenarios).find(([, sc]) => sc.doc === doc)?.[0];
+
+// Human name of a diagram (`doc#n`): its owner, suffixed with the fence number when the doc has several fences;
+// the raw doc path when nothing owns it.
+export function diagramLabel(index: Index, diagramId: string): string {
+  const doc = diagramId.slice(0, diagramId.lastIndexOf("#"));
+  const owner = docOwner(index, doc) ?? doc;
+  return hasSeveralFences(index, doc) ? `${owner} · ${fenceOf(diagramId) + 1}` : owner;
+}
+
+// Relation rows of the info panel, `[name, values]`; empty rows are skipped by the caller. `description` and `src`
+// are not relations and are rendered apart.
 export function panelFields(index: Index, selected: string): [string, string[]][] {
   const e = index.elements[selected];
-  const scenarios = Object.entries(index.scenarios)
-    .filter(([, sc]) => sc.steps.some((st) => st.from === selected || st.to === selected))
-    .map(([id]) => id);
   return [
-    ["description", e?.description ? [e.description] : []],
     ["parent", e?.parent ? [e.parent] : []],
     ["children", e?.children ?? []],
     ["appearsIn", e?.appearsIn ?? []],
-    ["scenarios", scenarios],
-    ["src", e?.src ?? []],
+    ["scenarios", scenariosOf(index, selected)],
   ];
 }
+
+// A step as a sentence: "A → B · label", or "B replies label to A" for a return.
+export const stepSentence = (s: Step): string => (s.isReturn ? `${s.from} replies ${s.label} to ${s.to}` : `${s.from} → ${s.to} · ${s.label}`);
+
+// ---- overview ---------------------------------------------------------------------------------
+
+export interface TreeNode {
+  id: string;
+  children: TreeNode[];
+}
+
+// Element hierarchy from `parent`/`children`, rooted at parentless elements that own a doc; a child cycle stops
+// at the first repeat.
+export function systemTree(index: Index): TreeNode[] {
+  const build = (id: string, seen: Set<string>): TreeNode => {
+    seen.add(id);
+    const kids = (index.elements[id]?.children ?? []).filter((c) => !seen.has(c));
+    return { id, children: kids.map((c) => build(c, seen)) };
+  };
+  return Object.entries(index.elements)
+    .filter(([, e]) => !e.parent && e.doc)
+    .map(([id]) => build(id, new Set()));
+}
+
+// Elements a scenario crosses, in order of first appearance.
+export const scenarioElements = (index: Index, scenarioId: string): string[] => [
+  ...new Set((index.scenarios[scenarioId]?.steps ?? []).flatMap((s) => [s.from, s.to])),
+];
 
 // Repo web URL of a doc line. A `{path}`/`{line}` template wins; otherwise a GitHub or GitLab edit URL is
 // rewritten to its blob view. Any other host returns null: edit URLs ignore `#L`, guessing risks a dead link.
@@ -177,6 +233,14 @@ export function annotateSequence(svg: SVGElement, diagram: DiagramEntry, index: 
     lines[i]?.setAttribute("data-docdive-message", String(i + 1));
   });
   return null;
+}
+
+// Participants (`rect.actor[name]`, top and bottom) become selectable like flowchart nodes.
+export function annotateActors(svg: SVGElement, diagram: DiagramEntry, index: Index): void {
+  for (const r of svg.querySelectorAll<SVGRectElement>("rect.actor[name]")) {
+    const id = r.getAttribute("name") as string;
+    if (diagram.nodes.includes(id) && r.parentElement) markNode(r.parentElement, id, index);
+  }
 }
 
 // A3 heuristic: the k-th forward message of an ordered pair maps to the k-th index edge of that pair;

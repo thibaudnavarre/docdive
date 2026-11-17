@@ -1,5 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { annotateSequence, breadcrumb, edgeOccurrence, hasSeveralFences, hostTheme, motionAllowed, sourceHref, touchesDiagram, urlStateOwner, withTrace, type DiagramEntry, type Index, type Step } from "./shared.js";
+import {
+  annotateFlowchart,
+  annotateSequence,
+  breadcrumb,
+  diagramLabel,
+  divable,
+  edgeOccurrence,
+  hasSeveralFences,
+  hostTheme,
+  motionAllowed,
+  panelFields,
+  scenarioElements,
+  sourceHref,
+  stepSentence,
+  systemTree,
+  touchesDiagram,
+  urlStateOwner,
+  withTrace,
+  type DiagramEntry,
+  type Index,
+  type Step,
+} from "./shared.js";
 
 const fwd = (from: string, to: string): Step => ({ from, to, label: "", isReturn: false });
 const ret = (from: string, to: string): Step => ({ from, to, label: "", isReturn: true });
@@ -212,5 +233,74 @@ describe("annotateSequence", () => {
   it("reports a label mismatch on the fence's own scenario", () => {
     const { root } = svg(["first 0", "wrong"]);
     expect(annotateSequence(root, seq("ops.md#0", [["A", "B"], ["B", "C"]]), index)).toMatch(/unreliable/);
+  });
+});
+
+describe("inspector and overview helpers", () => {
+  const index: Index = {
+    diagrams: [
+      { id: "system.md#0", type: "flowchart", nodes: ["API", "Orders", "DB"], edges: [["API", "Orders"], ["Orders", "DB"]] },
+      { id: "db.md#0", type: "flowchart", nodes: ["Pool"], edges: [] },
+      { id: "db.md#1", type: "flowchart", nodes: ["Pool"], edges: [] },
+      { id: "flow.md#0", type: "sequence", nodes: ["API", "Orders"], edges: [["API", "Orders"]] },
+    ],
+    elements: {
+      system: { doc: "system.md", parent: null, children: ["API", "Orders", "DB"] },
+      API: { doc: null, parent: "system", appearsIn: ["system.md#0", "flow.md#0"] },
+      Orders: { doc: "orders.md", parent: "system", children: ["Orders"], src: ["src/orders/"] },
+      DB: { doc: "db.md", parent: "system", children: ["Pool"] },
+      Pool: { doc: null, parent: "DB", appearsIn: ["db.md#0", "db.md#1"] },
+      loose: { doc: null, parent: null },
+    },
+    scenarios: { checkout: { doc: "flow.md", steps: [fwd("API", "Orders"), { from: "Orders", to: "API", label: "201", isReturn: true }] } },
+  };
+
+  it("divable means the element owns a doc", () => {
+    expect(divable(index, "Orders")).toBe(true);
+    expect(divable(index, "API")).toBe(false);
+    expect(divable(index, "nope")).toBe(false);
+  });
+
+  it("labels a diagram by its owner, numbering fences of a multi-fence doc, falling back to the doc path", () => {
+    expect(diagramLabel(index, "system.md#0")).toBe("system");
+    expect(diagramLabel(index, "flow.md#0")).toBe("checkout");
+    expect(diagramLabel(index, "db.md#1")).toBe("DB · 2");
+    expect(diagramLabel(index, "other.md#0")).toBe("other.md");
+  });
+
+  it("lists only relation rows, scenarios included, description and src excluded", () => {
+    expect(panelFields(index, "Orders")).toEqual([
+      ["parent", ["system"]],
+      ["children", ["Orders"]],
+      ["appearsIn", []],
+      ["scenarios", ["checkout"]],
+    ]);
+  });
+
+  it("phrases a step as a sentence, returns as replies", () => {
+    expect(stepSentence({ from: "API", to: "Orders", label: "POST /orders", isReturn: false })).toBe("API → Orders · POST /orders");
+    expect(stepSentence({ from: "Orders", to: "API", label: "201", isReturn: true })).toBe("Orders replies 201 to API");
+  });
+
+  it("builds the tree from parentless doc owners and stops at a repeated child", () => {
+    expect(systemTree(index)).toEqual([
+      { id: "system", children: [{ id: "API", children: [] }, { id: "Orders", children: [] }, { id: "DB", children: [{ id: "Pool", children: [] }] }] },
+    ]);
+  });
+
+  it("lists the elements a scenario crosses once, in order of first appearance", () => {
+    expect(scenarioElements(index, "checkout")).toEqual(["API", "Orders"]);
+    expect(scenarioElements(index, "nope")).toEqual([]);
+  });
+
+  it("marks flowchart nodes focusable and flags the divable ones", () => {
+    const g = (id: string) => ({ id, attrs: {} as Record<string, string>, setAttribute(k: string, v: string) { this.attrs[k] = v; } });
+    const nodes = [g("r-flowchart-API-1"), g("r-flowchart-Orders-2"), g("r-flowchart-Unknown-3")];
+    const svg = { querySelectorAll: (sel: string) => (sel === "g.node" ? nodes : []) } as unknown as SVGElement;
+    annotateFlowchart(svg, index.diagrams[0] as DiagramEntry, index);
+    expect(nodes[0]!.attrs).toEqual({ "data-docdive-node": "API", tabindex: "0", role: "button", "aria-label": "API" });
+    expect(nodes[1]!.attrs["data-docdive-divable"]).toBe("");
+    expect(nodes[1]!.attrs["aria-label"]).toBe("Orders, has its own diagram");
+    expect(nodes[2]!.attrs).toEqual({});
   });
 });
