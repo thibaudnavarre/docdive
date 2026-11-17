@@ -141,6 +141,8 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 [data-docdive-mark]:is([data-past], [aria-current])::after { background: var(--docdive-on-accent); }
 [data-docdive-mark][data-past]::before { background: var(--docdive-accent); border-color: var(--docdive-accent); }
 [data-docdive-mark]:hover::before { transform: translate(-50%, -50%) scale(1.3); border-color: var(--docdive-accent); }
+/* Dense rail (< 20px per step): only the playhead and the steps that write state keep a dot. */
+[data-dense] [data-docdive-mark]:not([aria-current], [data-has-state])::before { display: none; }
 [data-docdive-mark][aria-current]::before { width: 16px; height: 16px; background: var(--docdive-accent); border-color: var(--docdive-surface); box-shadow: 0 0 0 2px var(--docdive-accent), 0 0 0 6px color-mix(in srgb, var(--docdive-accent) 12%, transparent); }
 /* State strip: cards per participant, or one trail per entity. */
 [data-docdive-state] { display: grid; gap: .75em; padding-top: .75em; border-top: 1px solid var(--docdive-border); }
@@ -355,6 +357,7 @@ export class DocdiveDiagram extends HTMLElement {
       this.stopPlay();
       this.setStep(next);
     });
+    new ResizeObserver(() => this.fitRail()).observe(this.rail);
     this.strip.addEventListener("click", (ev) => {
       const t = ev.target as Element;
       const mode = t.closest("[data-docdive-state-mode]")?.getAttribute("data-docdive-state-mode");
@@ -373,6 +376,12 @@ export class DocdiveDiagram extends HTMLElement {
         this.setStep(Number(jump));
       }
     });
+  }
+
+  // Marks overlap below ~20px per step: the rail switches to a dense mode (CSS) that keeps only meaningful dots.
+  private fitRail(): void {
+    const n = this.steps().length;
+    this.rail.toggleAttribute("data-dense", n > 0 && this.rail.clientWidth / n < 20);
   }
 
   private scrubTo(clientX: number): void {
@@ -535,6 +544,7 @@ export class DocdiveDiagram extends HTMLElement {
     this.rail.setAttribute("aria-valuenow", String(this.step));
     this.rail.setAttribute("aria-valuetext", s ? `Step ${this.step} of ${all.length}: ${stepSentence(s)}` : "Before the first step");
     this.railFill.style.width = `${(this.step / Math.max(1, all.length)) * 100}%`;
+    this.fitRail();
     if (this.marks.getAttribute("data-for") !== this.scenario) {
       this.marks.setAttribute("data-for", this.scenario);
       const withState = this.index ? stateSteps(this.index, this.scenario) : [];

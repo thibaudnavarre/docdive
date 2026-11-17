@@ -340,7 +340,7 @@ describe("state through the steps", () => {
     },
   };
 
-  it("merges notes up to the step, later wins, and flags what the current step changed", () => {
+  it("merges notes up to the step, later wins, text is the latest note's, and flags what the current step changed", () => {
     expect(stateAt(index, "flow", 0)).toEqual([{ over: "API", entity: "Cart", fields: [{ k: "items", v: "2", changed: true }], text: "", changed: true }]);
     const at1 = stateAt(index, "flow", 1);
     expect(at1.map((c) => [c.over, c.entity, c.changed])).toEqual([["API", "Cart", false], ["Orders", "Order", true]]);
@@ -348,6 +348,12 @@ describe("state through the steps", () => {
     expect(at3.map((c) => `${c.over}/${c.entity}:${c.changed}`)).toEqual(["API/Cart:false", "Orders/Order:false", "DB/Order:true", "API/Order:true"]);
     expect(at3[2]).toMatchObject({ text: "row in orders", fields: [{ k: "status", v: "paid", changed: true }, { k: "id", v: "42", changed: true }] });
     expect(stateAt(index, "flow", 2)[1]?.fields).toEqual([{ k: "status", v: "pending", changed: false }]);
+    const texts: Index = { ...index, scenarios: { t: { doc: "t.md", steps: [
+      { ...fwd("A", "B"), notes: [{ over: ["B"], entity: "X", fields: { a: "1" }, text: "first" }] },
+      { ...fwd("A", "B"), notes: [{ over: ["B"], entity: "X", fields: { b: "2" }, text: "" }] },
+    ] } } };
+    expect(stateAt(texts, "t", 1)[0]?.text).toBe("first");
+    expect(stateAt(texts, "t", 2)[0]?.text).toBe("");
     expect(stateAt(index, "nope", 1)).toEqual([]);
   });
 

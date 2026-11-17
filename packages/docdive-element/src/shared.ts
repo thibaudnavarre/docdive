@@ -132,7 +132,8 @@ export interface StateCard {
 }
 
 // State of every participant at `step` (0 = initial state only): notes up to `step` merged field by field, later
-// wins; one card per participant and entity, in order of first appearance.
+// wins; the free text is the latest note's commentary (a note without text clears it). One card per participant and
+// entity, in order of first appearance.
 export function stateAt(index: Index, scenarioId: string, step: number): StateCard[] {
   const sc = index.scenarios[scenarioId];
   if (!sc) return [];
@@ -144,7 +145,7 @@ export function stateAt(index: Index, scenarioId: string, step: number): StateCa
         const key = `${over}\u0000${note.entity ?? ""}`;
         const card = cards.get(key) ?? { over, entity: note.entity, fields: new Map(), text: "", at };
         for (const [k, v] of Object.entries(note.fields ?? {})) card.fields.set(k, { v, at });
-        if (note.text) card.text = note.text;
+        card.text = note.text;
         card.at = at;
         cards.set(key, card);
       }
