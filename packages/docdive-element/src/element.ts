@@ -51,6 +51,8 @@ export { resolveMermaid, type MermaidApi } from "./mermaid-resolver.js";
 // Scenario trace: a player in the shadow root, shown only when a scenario touches the diagram: one play/pause glyph,
 // a scrubbable rail (`data-docdive-scrub`, a slider; `data-docdive-mark` per step), the `n / N` counter, the step
 // sentence, and under it the state strip (`data-docdive-state`): what each drawn participant holds at this step,
+// A sequence diagram keeps its natural width (the card scrolls and follows the active message) and clicking a message
+// jumps to its step.
 // from the scenario's `Note over X: Entity k=v …` lines, by participant or by entity. Initial state
 // comes from the page query (`docdive-scenario`, `docdive-step`), restored paused, and `docdive-select` (an element ID
 // shown in this diagram) reopens its panel (the panel's "Copy link" builds such a URL); invalid values are ignored or
@@ -96,7 +98,9 @@ ${TOKEN_STYLE}
   [data-docdive-layout][data-docdive-docked] [data-docdive-panel] { position: sticky; top: var(--docdive-space); }
 }
 .card { padding: calc(var(--docdive-space) * 1.25); background: var(--docdive-surface); border: 1px solid var(--docdive-border); border-radius: var(--docdive-radius); box-shadow: var(--docdive-shadow); }
-[data-docdive-diagram] { padding: calc(var(--docdive-space) * 1.25); background: var(--docdive-surface); border: 1px solid var(--docdive-border); border-radius: var(--docdive-radius); overflow-x: auto; }
+/* A diagram wider or taller than the card scrolls inside it (sequence SVGs keep their natural width, see draw()). */
+[data-docdive-diagram] { padding: calc(var(--docdive-space) * 1.25); background: var(--docdive-surface); border: 1px solid var(--docdive-border); border-radius: var(--docdive-radius); overflow: auto; max-height: 75vh; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { [data-docdive-diagram] { scroll-behavior: auto; } }
 [data-docdive-diagram] svg { display: block; max-width: 100%; height: auto; }
 
 /* Controls */
@@ -228,6 +232,10 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 path[data-docdive-active] { stroke: var(--docdive-accent) !important; stroke-width: 3px !important; }
 text[data-docdive-active] { fill: var(--docdive-accent) !important; font-weight: bold; }
 [class^="messageLine"][data-docdive-active] { stroke: var(--docdive-accent) !important; stroke-width: 3px !important; }
+/* A message is a step: click it to jump there. */
+[data-docdive-message] { cursor: pointer; }
+text[data-docdive-message]:hover { fill: var(--docdive-accent) !important; }
+[class^="messageLine"][data-docdive-message]:hover { stroke: var(--docdive-accent) !important; }
 .node[data-docdive-active], path[data-docdive-active], [class^="messageLine"][data-docdive-active] { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--docdive-accent) 55%, transparent)); }
 `;
 
@@ -493,6 +501,9 @@ export class DocdiveDiagram extends HTMLElement {
       if (diagram.edges.length > 0 && mapped("data-docdive-edge") === 0) return "no flowchart edge could be mapped";
     }
     if (diagram.type !== "sequence") return null;
+    // A sequence diagram is as wide as its participants: never shrink it below its natural size, let the card scroll.
+    const natural = Number(svgEl.getAttribute("viewBox")?.split(/\s+/)[2]);
+    if (natural > 0) svgEl.style.minWidth = `${natural}px`;
     annotateActors(svgEl, diagram, index);
     return annotateSequence(svgEl, diagram, index);
   }
@@ -568,12 +579,25 @@ export class DocdiveDiagram extends HTMLElement {
     if (s) this.stepLabel.textContent = stepSentence(s);
     else this.stepLabel.append(el("span", { class: "muted" }, "Press play or step through the scenario."));
     if (this.index && this.diagram) applyTrace(this.host, this.throughHost, this.index, this.diagram, this.scenario, this.step);
+    this.followStep();
     this.renderStrip();
     this.renderPanelState();
     const open = this.panel.querySelector("[data-docdive-open]");
     const url = this.selected ? this.openUrl(this.selected) : undefined;
     if (open && url) open.setAttribute("href", url);
     for (const [a, id] of this.crumbLinks) a.setAttribute("href", this.openUrl(id) ?? "");
+  }
+
+  // Scrolls the diagram card so the active message sits at its centre; the page itself never moves (no scrollIntoView).
+  private followStep(): void {
+    const line = this.host.querySelector(`[class^="messageLine"][data-docdive-message="${this.step}"]`);
+    if (!line) return void (this.step === 0 && this.host.scrollTo(0, 0));
+    const h = this.host.getBoundingClientRect();
+    const r = line.getBoundingClientRect();
+    this.host.scrollTo(
+      this.host.scrollLeft + (r.left + r.width / 2 - h.left) - h.width / 2,
+      this.host.scrollTop + (r.top + r.height / 2 - h.top) - h.height / 2,
+    );
   }
 
   // `k = v` chip; tinted when the current step set it.
@@ -742,7 +766,13 @@ export class DocdiveDiagram extends HTMLElement {
   }
 
   // Node click (or Enter/Space) only selects. The deep dive is the inspector's link, so the inspector stays reachable.
+  // A message click jumps to its step.
   private onSelect(ev: Event): void {
+    const message = (ev.target as Element).closest("[data-docdive-message]")?.getAttribute("data-docdive-message");
+    if (message) {
+      this.stopPlay();
+      return this.setStep(Number(message));
+    }
     const id = (ev.target as Element).closest("[data-docdive-node]")?.getAttribute("data-docdive-node");
     if (!id || !this.index) return;
     ev.preventDefault();

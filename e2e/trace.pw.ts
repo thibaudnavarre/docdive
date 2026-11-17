@@ -83,6 +83,14 @@ for (const site of SITES) {
         await expect(active).toHaveCount(1);
         await expect(active).toHaveText(steps[i - 1]!.label);
       }
+      // A message is a step: clicking its label jumps there and pauses.
+      await page.click(q('text[data-docdive-message="2"]'));
+      await expectPaused(page, "2");
+      await expect(page.locator(q("[data-docdive-scrub]"))).toHaveAttribute("aria-valuenow", "2");
+      // The SVG never shrinks below its natural width (the card scrolls instead).
+      const svg = page.locator(q("svg"));
+      const natural = (await svg.getAttribute("viewBox"))!.split(/\s+/)[2];
+      await expect(svg).toHaveCSS("min-width", `${natural}px`);
       await expect(page.locator(q("[data-docdive-error]"))).toHaveText("");
     });
 

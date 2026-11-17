@@ -7,7 +7,8 @@ The web components of [docdive](https://github.com/thibaudnavarre/docdive):
   Boxes with a diagram of their own are drawn heavier; click one (or focus it and press Enter) to inspect it. When the
   element is at least 960px wide the inspector docks to the right of the diagram, otherwise it sits below.
   The player is one play/pause glyph, a rail you click, drag or move with ←/→ (one mark per step; a dot marks the
-  steps that write state) and the step sentence. Under it, the state strip shows what each participant holds at
+  steps that write state) and the step sentence. A sequence diagram keeps its natural width: the diagram card
+  scrolls and follows the active message, and clicking a message jumps to its step. Under it, the state strip shows what each participant holds at
   this step, read from the scenario's `Note over X: Entity k=v …` lines, by participant or by entity (each entity's
   trail across the steps); the inspector repeats the selected element's state. Fields are listed alphabetically.
 - `<docdive-map>` is the system at a glance: the element tree and the flows, each linking to its page. Drop
