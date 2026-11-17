@@ -114,3 +114,24 @@ describe("extractSequence", () => {
     expect(() => extractSequence("sequenceDiagram\n  this is nonsense")).toThrow(/Unrecognised/);
   });
 });
+
+describe("extractSequence notes", () => {
+  it("attaches a note to the message before it, parsed as entity, fields and text", () => {
+    const r = extractSequence(
+      "sequenceDiagram\n  API->>OrderService: POST /orders\n  Note over API: Order status=draft items=2\n  Note right of OrderService: hold for 7<br/>days\n  OrderService->>OrdersDB: INSERT\n  note over OrdersDB, API: Order id=42 status=paid row in orders",
+    );
+    expect(r.steps[0]?.notes).toEqual([
+      { over: ["API"], entity: "Order", fields: { status: "draft", items: "2" }, text: "" },
+      { over: ["OrderService"], text: "hold for 7 days" },
+    ]);
+    expect(r.steps[1]?.notes).toEqual([{ over: ["OrdersDB", "API"], entity: "Order", fields: { id: "42", status: "paid" }, text: "row in orders" }]);
+    expect(r.initial).toBeUndefined();
+  });
+
+  it("keeps notes before the first message as the initial state and counts their participants", () => {
+    const r = extractSequence("sequenceDiagram\n  Note over Cart: Cart items=0\n  API->>OrderService: x");
+    expect(r.initial).toEqual([{ over: ["Cart"], entity: "Cart", fields: { items: "0" }, text: "" }]);
+    expect(r.participants).toEqual(["Cart", "API", "OrderService"]);
+    expect(r.steps[0]?.notes).toBeUndefined();
+  });
+});

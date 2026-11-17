@@ -1,6 +1,6 @@
 import { DOC_EXT, type Doc } from "./loader.js";
 import { extractFlowchart } from "./flowchart.js";
-import { extractSequence, type SequenceStep } from "./sequence.js";
+import { extractSequence, type SequenceStep, type StateNote } from "./sequence.js";
 import { proposeFuzzyIds } from "./fuzzy.js";
 
 export interface Element {
@@ -25,6 +25,8 @@ export interface Diagram {
 export interface Scenario {
   doc: string;
   steps: SequenceStep[];
+  /** State notes written before the first message. */
+  initial?: StateNote[];
   /** A sequence diagram in a doc without `kind: scenario`. */
   inferred?: true;
 }
@@ -126,12 +128,12 @@ export function buildModel(docs: Doc[]): Index {
         appear(seq.participants);
         if (doc.frontmatter.kind === "scenario") {
           const sid = doc.frontmatter.id ? String(doc.frontmatter.id) : null;
-          if (sid && !(sid in scenarios)) scenarios[sid] = { doc: doc.path, steps: seq.steps };
+          if (sid && !(sid in scenarios)) scenarios[sid] = { doc: doc.path, steps: seq.steps, ...(seq.initial && { initial: seq.initial }) };
         } else if (seq.steps.length) {
           const slug = doc.path.replace(DOC_EXT, "");
           let key = `${id ?? slug}#${block.index}`;
           if (key in scenarios) key = `${slug}#${block.index}`;
-          scenarios[key] = { doc: doc.path, steps: seq.steps, inferred: true };
+          scenarios[key] = { doc: doc.path, steps: seq.steps, ...(seq.initial && { initial: seq.initial }), inferred: true };
         }
       }
     }
@@ -164,7 +166,7 @@ export function buildModel(docs: Doc[]): Index {
     if (el.parent) get(el.parent).children.push(id);
   }
   const index: Index = { version: 1, elements, diagrams, scenarios, diagnostics };
-  diagnostics.push(...lintEdgeNotInDiagram(index), ...proposeFuzzyIds(elements));
+  diagnostics.push(...lintEdgeNotInDiagram(index), ...lintNoteParticipant(index), ...proposeFuzzyIds(elements));
   return index;
 }
 
@@ -172,6 +174,19 @@ export function buildModel(docs: Doc[]): Index {
 export function resolveParticipant(index: Index, name: string): boolean {
   const el = index.elements[name];
   return !!el && (!!el.doc || el.appearsIn.length >= 2);
+}
+
+/** W: a state note over a name that never sends or receives a message in its scenario (likely a misspelling). */
+export function lintNoteParticipant(index: Index): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  for (const [scenarioId, scenario] of Object.entries(index.scenarios)) {
+    const actors = new Set(scenario.steps.flatMap((s) => [s.from, s.to]));
+    const notes = [...(scenario.initial ?? []), ...scenario.steps.flatMap((s) => s.notes ?? [])];
+    for (const p of new Set(notes.flatMap((n) => n.over))) {
+      if (!actors.has(p)) out.push({ rule: "note-participant-unknown", file: scenario.doc, scenario: scenarioId, participant: p, message: `note over "${p}", which sends or receives no message in ${scenarioId}` });
+    }
+  }
+  return out;
 }
 
 /** Inferred scenarios are skipped: participants and node IDs are two vocabularies, so a mismatch is not a conflict. */

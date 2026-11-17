@@ -119,6 +119,17 @@ describe("buildModel", () => {
     expect(resolveParticipant(index, "Nobody")).toBe(false);
     expect(index.diagnostics.filter((d) => d.rule === "edge-not-in-diagram")).toMatchObject([{ scenario: "checkout", from: "Gateway", to: "Worker" }]);
   });
+
+  it("carries state notes on steps and the initial state, and warns on a note over a silent participant", () => {
+    const root = project({
+      "flow.md": "---\nid: checkout\nkind: scenario\n---\n```mermaid\nsequenceDiagram\n  Note over Cart: Cart items=0\n  API->>Orders: POST\n  Note over Orders: Order status=pending\n  Note over Ordres: Order status=lost\n```\n",
+    });
+    const index = buildModel(loadDocs(root));
+    const sc = index.scenarios.checkout!;
+    expect(sc.initial).toEqual([{ over: ["Cart"], entity: "Cart", fields: { items: "0" }, text: "" }]);
+    expect(sc.steps[0]?.notes?.map((n) => n.over)).toEqual([["Orders"], ["Ordres"]]);
+    expect(index.diagnostics.filter((d) => d.rule === "note-participant-unknown").map((d) => d.participant).sort()).toEqual(["Cart", "Ordres"]);
+  });
 });
 
 describe("fuzzy IDs", () => {
@@ -143,5 +154,15 @@ describe("renderAllContexts", () => {
     expect(Object.keys(all).sort()).toEqual(["API", "Ctl", "Orders", "Repo", "system"]);
     expect(all.Orders).toContain("Orders body.");
     expect(all.API).not.toContain("## Doc");
+  });
+
+  it("lists the state an element holds at each scenario step", () => {
+    const root = project({
+      "flow.md": "---\nid: checkout\nkind: scenario\n---\n```mermaid\nsequenceDiagram\n  API->>Orders: POST\n  Note over Orders: Order status=pending\n  Note over API: ack\n```\n",
+    });
+    const docs = loadDocs(root);
+    const all = renderAllContexts(buildModel(docs), docs);
+    expect(all.Orders).toContain("1. API -> Orders: POST\n   state: Order status=pending");
+    expect(all.API).toContain("1. API -> Orders: POST\n   state: ack");
   });
 });

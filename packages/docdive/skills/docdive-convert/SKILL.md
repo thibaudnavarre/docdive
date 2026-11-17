@@ -34,7 +34,7 @@ Do not stop while step 7 reports errors.
 - **Duplicated diagrams.** The same diagram in several files (a chapter, a consolidated doc, a bare `.mmd`) is indexed once per copy: extra scenarios and repeated warnings. Rename IDs in every copy. Give `id`/`parent` to one doc only (the chapter). Bare `.mmd` copies of a fenced diagram add nothing: list them in the report and leave them to the user rather than deleting them.
 - **One doc, several elements.** Give the doc the `id` of the element it is mainly about; the others stay nodes of its diagram.
 - **Diagram types.** Only `flowchart`/`graph` and `sequenceDiagram` join the model. Leave other diagram types untouched.
-- **Scenarios.** Take flows from what the docs describe (numbered steps, existing sequence diagrams, "when a user…" prose). Turn each into a `sequenceDiagram` whose participants are element IDs. Never invent a step the docs or code do not support.
+- **Scenarios.** Take flows from what the docs describe (numbered steps, existing sequence diagrams, "when a user…" prose). Turn each into a `sequenceDiagram` whose participants are element IDs. Never invent a step the docs or code do not support. When the docs or code say what the data looks like at a step (a status, an id, a row written), add a `Note over <holder>: Entity k=v …` after that message (see conventions, "State notes"); never invent fields.
 - **`src`.** Only paths you verified exist. A directory beats a guessed file. Omit when unsure.
 - **`description`.** One sentence from the docs: what it does.
 - **Docusaurus.** Frontmatter `id` is also the Docusaurus doc id. Keep it unique across the docs folder.

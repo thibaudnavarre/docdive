@@ -16,11 +16,18 @@ export interface ElementEntry {
 }
 /** index.json schema version this element reads. Bumped only for breaking changes to the index shape. */
 export const INDEX_VERSION = 1;
+/** State of `over` at a step: `Note over A[,B]: [Entity] k=v … [text]` as indexed by docdive. */
+export interface StateNote {
+  over: string[];
+  text: string;
+  entity?: string;
+  fields?: Record<string, string>;
+}
 export interface Index {
   version?: number;
   diagrams: DiagramEntry[];
   elements: Record<string, ElementEntry>;
-  scenarios: Record<string, { doc: string; steps: { from: string; to: string; label: string; isReturn: boolean }[] }>;
+  scenarios: Record<string, { doc: string; steps: { from: string; to: string; label: string; isReturn: boolean; notes?: StateNote[] }[]; initial?: StateNote[] }>;
 }
 
 export function el<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Record<string, string> = {}, text = ""): HTMLElementTagNameMap[K] {

@@ -30,6 +30,12 @@ kind: scenario              # only on a flow doc (see Scenarios); omit otherwise
 - A `sequenceDiagram` in a doc without `kind: scenario` still animates, under the id `<doc id or path>#<fence index>`.
 - Animation shows on any flowchart that draws a step's participants, or one of their ancestors. Use participants at the zoom level where the flow should be seen, and include actors (`Operator`) only if a flowchart draws them.
 
+### State notes (what the data looks like at a step)
+- A `Note over X: …` placed right after a message is the state X holds at that step; the viewer shows it under the player and in X's inspector. A note before the first message is the initial state. `Note over A,B` applies to both.
+- Write `Entity key=value key=value … free text`: a leading PascalCase word is the entity (`Order`, `Payment`), `k=v` tokens are fields (no spaces in a value), anything else is text shown muted. `Note over OrdersDB: Order id=42 status=paid row in orders`.
+- Add a note only where state changes (a new or updated field), on the participant that holds it: the frontend or API for what the client sees, the service for in-flight state, the store for what is persisted. Fields accumulate across steps; later values win.
+- Keep one spelling per entity and per field across notes. Notes render as plain Mermaid notes on GitHub.
+
 ## Lint
 `docdive lint <docs> --root <repo>` exits 1 on errors, 0 otherwise.
 
@@ -40,4 +46,4 @@ kind: scenario              # only on a flow doc (see Scenarios); omit otherwise
 | `missing-parent` | `parent` is no doc's `id`: fix the spelling (`suggestion`) or create that doc. |
 | `missing-src` | The path does not exist under `--root`: fix it or drop it. |
 
-Warnings (`--json`): `fuzzy-id-candidate` (two IDs look like one thing: unify if they are), `duplicate-id-different-labels` (one ID, different labels: harmless when both labels name the same thing; split the ID when they don't), `edge-not-in-diagram`, `parse-failed` (a fence docdive cannot read: simplify the syntax).
+Warnings (`--json`): `note-participant-unknown` (a state note over a name that sends or receives no message in that scenario: fix the spelling), `fuzzy-id-candidate` (two IDs look like one thing: unify if they are), `duplicate-id-different-labels` (one ID, different labels: harmless when both labels name the same thing; split the ID when they don't), `edge-not-in-diagram`, `parse-failed` (a fence docdive cannot read: simplify the syntax).
