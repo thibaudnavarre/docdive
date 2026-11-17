@@ -1,4 +1,6 @@
 import { resolveMermaid, type MermaidApi } from "./mermaid-resolver.js";
+import { getJson, here, observeTheme, TOKEN_STYLE } from "./runtime.js";
+import "./map.js";
 import {
   annotateActors,
   annotateFlowchart,
@@ -10,11 +12,9 @@ import {
   drawsElement,
   el,
   hasSeveralFences,
-  hostTheme,
   panelFields,
   sourceHref,
   stepSentence,
-  THEME_ATTRS,
   touchesDiagram,
   urlStateOwner,
   withTrace,
@@ -64,40 +64,13 @@ export function setMermaid(mermaid: unknown): void {
 }
 const loadBundled = (): Promise<MermaidApi> => import("mermaid").then((m) => m.default as unknown as MermaidApi);
 
-const here = import.meta.url;
-const cache = new Map<string, Promise<unknown>>();
-const getJson = <T>(url: string): Promise<T> => {
-  let p = cache.get(url);
-  if (!p) {
-    p = fetch(url).then((r) => {
-      if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
-      return r.json();
-    });
-    cache.set(url, p);
-  }
-  return p as Promise<T>;
-};
-
 // Compare URLs by path only, ignoring trailing slash, index.html and .html.
 const normPath = (u: string): string =>
   new URL(u, location.href).pathname.replace(/\/index\.html$/, "").replace(/\.html$/, "").replace(/\/+$/, "");
 
-const DARK_TOKENS =
-  "--docdive-bg: #111113; --docdive-surface: #18181b; --docdive-surface-2: #1f1f23; --docdive-fg: #e4e4e7; --docdive-fg-muted: #9b9ba6; --docdive-border: #2e2e33; --docdive-accent: #818cf8; --docdive-on-accent: #111113; --docdive-selected: #38bdf8; --docdive-ok: #4ade80; --docdive-error: #f87171; --docdive-node-fill: #18181b; --docdive-node-stroke: #71717a; --docdive-edge: #a1a1aa; --docdive-shadow: 0 1px 2px rgb(0 0 0 / .4), 0 8px 24px -12px rgb(0 0 0 / .6);";
-
 const STYLE = `
-:host {
-  --docdive-bg: #fafafa; --docdive-surface: #fff; --docdive-surface-2: #f4f4f5; --docdive-fg: #18181b; --docdive-fg-muted: #6b6b76;
-  --docdive-border: #e4e4e7; --docdive-accent: #4f46e5; --docdive-on-accent: #fff; --docdive-selected: #0284c7; --docdive-ok: #15803d; --docdive-error: #b91c1c;
-  --docdive-node-fill: #fff; --docdive-node-stroke: #8e8e96; --docdive-edge: #71717a;
-  --docdive-font: inherit; --docdive-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --docdive-radius: 14px; --docdive-space: 16px; --docdive-duration: 160ms;
-  --docdive-shadow: 0 1px 2px rgb(0 0 0 / .04), 0 4px 16px -8px rgb(0 0 0 / .08);
-  display: block; container-type: inline-size; font-family: var(--docdive-font); color: var(--docdive-fg); line-height: 1.45;
-}
-@media (prefers-color-scheme: dark) { :host(:not([data-docdive-theme])) { ${DARK_TOKENS} } }
-:host([data-docdive-theme="dark"]) { ${DARK_TOKENS} }
-*, *::before, *::after { box-sizing: border-box; }
+${TOKEN_STYLE}
+:host { container-type: inline-size; }
 [data-docdive-layout] { display: grid; gap: var(--docdive-space); grid-template-areas: "crumbs" "trace" "error" "diagram" "panel"; }
 [data-docdive-breadcrumb] { grid-area: crumbs; }
 [data-docdive-trace] { grid-area: trace; }
@@ -123,13 +96,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .btn.primary, button.primary { background: var(--docdive-accent); color: var(--docdive-on-accent); border-color: var(--docdive-accent); font-weight: 600; justify-self: start; }
 .btn.primary:hover, button.primary:hover { background: color-mix(in srgb, var(--docdive-accent) 85%, #000); border-color: transparent; color: var(--docdive-on-accent); }
 :is(button, select, a, [data-docdive-node], [data-docdive-pill]):focus-visible { outline: 2px solid var(--docdive-accent); outline-offset: 2px; }
-.chip, [data-docdive-through] { display: inline-flex; align-items: center; padding: .1em .7em; border-radius: 999px; background: var(--docdive-surface-2); border: 1px solid transparent; color: inherit; text-decoration: none; font: inherit; font-size: .86em; line-height: 1.6; cursor: default; }
-:is(a, button).chip { cursor: pointer; }
-:is(a, button).chip:hover { border-color: var(--docdive-accent); color: var(--docdive-accent); background: var(--docdive-surface-2); }
-.kind { padding: .05em .6em; background: transparent; border-color: var(--docdive-border); color: var(--docdive-fg-muted); text-transform: uppercase; letter-spacing: .06em; font-size: .72em; font-weight: 600; }
-[data-docdive-through] { background: color-mix(in srgb, var(--docdive-accent) 12%, transparent); color: var(--docdive-accent); }
-.muted { color: var(--docdive-fg-muted); }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+[data-docdive-through] { display: inline-flex; align-items: center; padding: .1em .7em; border-radius: 999px; font-size: .86em; line-height: 1.6; background: color-mix(in srgb, var(--docdive-accent) 12%, transparent); color: var(--docdive-accent); }
 
 /* Breadcrumb */
 [data-docdive-breadcrumb] ol { display: flex; flex-wrap: wrap; gap: .4em; margin: 0; padding: 0; list-style: none; align-items: baseline; font-size: 1.05em; }
@@ -250,7 +217,7 @@ export class DocdiveDiagram extends HTMLElement {
   private step = 0;
   private diagram?: DiagramEntry;
   private page?: { doc: string; n: number };
-  private themeObserver?: MutationObserver;
+  private unobserveTheme?: () => void;
   private timer?: ReturnType<typeof setInterval>;
   private traceBar = el("div", { "data-docdive-trace": "", part: "trace", "aria-label": "Scenario player" });
   private picker = el("select", { "data-docdive-scenario-picker": "", "aria-label": "Scenario" });
@@ -311,22 +278,12 @@ export class DocdiveDiagram extends HTMLElement {
 
   disconnectedCallback(): void {
     this.stopPlay();
-    this.themeObserver?.disconnect();
+    this.unobserveTheme?.();
+    this.unobserveTheme = undefined;
   }
 
-  // Shadow DOM cannot see host attributes from CSS, so the host theme is mirrored onto this element.
-  private syncTheme = (): void => {
-    const theme = hostTheme(document);
-    if (theme) this.setAttribute("data-docdive-theme", theme);
-    else this.removeAttribute("data-docdive-theme");
-  };
-
   connectedCallback(): void {
-    this.syncTheme();
-    this.themeObserver ??= new MutationObserver(this.syncTheme);
-    const opts = { attributes: true, attributeFilter: THEME_ATTRS };
-    this.themeObserver.observe(document.documentElement, opts);
-    if (document.body) this.themeObserver.observe(document.body, opts);
+    this.unobserveTheme ??= observeTheme(this);
     // Take the fence text out of the light DOM so Material's own Mermaid mount finds nothing.
     if (!this.hasAttribute("source") && this.textContent?.trim()) {
       this.setAttribute("source", this.textContent.replace(/^\n+|\s+$/g, ""));

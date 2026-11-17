@@ -43,7 +43,8 @@ class DocdivePlugin(BasePlugin[DocdiveConfig]):
     def on_files(self, files: Files, config: MkDocsConfig) -> Files:
         # src_uri -> site-absolute URL (site_url path + file url), so the element needs no base-URL logic.
         base_path = urlparse(config.site_url or "").path.rstrip("/")
-        self.doc_urls = {f.src_uri: f"{base_path}/{f.url}" for f in files.documentation_pages()}
+        # The home page's url is "./" under use_directory_urls.
+        self.doc_urls = {f.src_uri: f"{base_path}/{f.url.removeprefix('./')}" for f in files.documentation_pages()}
         self.edit_urls = {}
         return files
 
